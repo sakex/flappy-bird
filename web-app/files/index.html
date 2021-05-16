@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        #canvas {
+            border: 1px solid black;
+            background: url("/background");
+        }
+    </style>
+</head>
+<body>
+<canvas id="canvas" width="700px" height="800px"></canvas>
+<script type="module">
+    import init, {start} from '/wasm/wasm_flappy_bird.js';
+    const run = async () => {
+        await init();
+        start();
+    }
+    run();
+</script>
+</body>
+</html>
