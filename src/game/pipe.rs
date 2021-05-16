@@ -6,14 +6,12 @@ pub const HEIGHT: f64 = 320.0;
 
 pub struct Pipe {
     pub x: f64,
-    pub y: f64
+    pub y: f64,
 }
 
 impl Pipe {
     pub fn new(x: f64, y: f64) -> Pipe {
-        Pipe {
-            x, y
-        }
+        Pipe { x, y }
     }
 
     pub fn move_left(&mut self) {

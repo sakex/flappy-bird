@@ -1,8 +1,8 @@
-use crate::game::pipe::Pipe;
 use crate::game::bird::Bird;
-use rand::Rng;
+use crate::game::pipe::Pipe;
+use crate::game::{bird, pipe};
 use rand::prelude::ThreadRng;
-use crate::game::{pipe, bird};
+use rand::Rng;
 
 pub trait Render {
     fn render(&self, canvas_ctx: &web_sys::CanvasRenderingContext2d);
@@ -83,18 +83,22 @@ impl Game {
         });
 
         let first_pipe = &self.pipes[0];
-        let overlap_x = first_pipe.x <= bird::X + bird::RADIUS && first_pipe.x + pipe::WIDTH >= bird::X - bird::RADIUS;
+        let overlap_x = first_pipe.x <= bird::X + bird::RADIUS
+            && first_pipe.x + pipe::WIDTH >= bird::X - bird::RADIUS;
         if overlap_x {
             self.birds.retain(|bird_ref| {
-                !(bird_ref.y + bird::RADIUS >= first_pipe.y && bird_ref.y - bird::RADIUS <= first_pipe.y + pipe::HEIGHT)
+                !(bird_ref.y + bird::RADIUS >= first_pipe.y
+                    && bird_ref.y - bird::RADIUS <= first_pipe.y + pipe::HEIGHT)
             });
         }
         let second_pipe = &self.pipes[1];
 
-        let overlap_x = second_pipe.x <= bird::X + bird::RADIUS && second_pipe.x + pipe::WIDTH >= bird::X - bird::RADIUS;
+        let overlap_x = second_pipe.x <= bird::X + bird::RADIUS
+            && second_pipe.x + pipe::WIDTH >= bird::X - bird::RADIUS;
         if overlap_x {
             self.birds.retain(|bird_ref| {
-                bird_ref.y + bird::RADIUS <= second_pipe.y && bird_ref.y >= second_pipe.y + pipe::HEIGHT
+                bird_ref.y + bird::RADIUS <= second_pipe.y
+                    && bird_ref.y >= second_pipe.y + pipe::HEIGHT
             });
         }
     }
@@ -115,7 +119,8 @@ impl Game {
     }
 
     pub fn render(&self) {
-        self.canvas_ctx.clear_rect(0.0, 0.0, self.width, self.height);
+        self.canvas_ctx
+            .clear_rect(0.0, 0.0, self.width, self.height);
         for bird in &self.birds {
             bird.render(&self.canvas_ctx);
         }

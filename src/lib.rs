@@ -1,16 +1,16 @@
 extern crate serde;
 
-mod utils;
 mod game;
+mod utils;
 
+use crate::utils::request_animation_frame;
+use game::game::Game;
+use serde::{Deserialize, Serialize};
+use std::cell::RefCell;
 use std::f64;
+use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use game::game::Game;
-use std::rc::Rc;
-use std::cell::RefCell;
-use crate::utils::request_animation_frame;
-use serde::{Serialize, Deserialize};
 use web_sys::window;
 
 #[wasm_bindgen]
@@ -43,11 +43,9 @@ pub fn start() -> ClosuresHandle {
     let space_pressed = Rc::new(RefCell::new(false));
     let pressed_clone = space_pressed.clone();
 
-
     let func = Closure::wrap(Box::new(move |js_event: web_sys::KeyboardEvent| {
         *pressed_clone.borrow_mut() = js_event.key_code() == 32;
     }) as Box<dyn FnMut(web_sys::KeyboardEvent)>);
-
 
     document.add_event_listener_with_callback("keydown", func.as_ref().unchecked_ref());
 
@@ -72,8 +70,7 @@ pub fn start() -> ClosuresHandle {
             if *pressed {
                 if *started_ref {
                     game_obj.jump();
-                }
-                else {
+                } else {
                     *started_ref = true;
                 }
             }
@@ -89,8 +86,5 @@ pub fn start() -> ClosuresHandle {
     }) as Box<dyn FnMut()>));
     request_animation_frame(g.borrow().as_ref().unwrap());
 
-
-    ClosuresHandle {
-        _keypress: func
-    }
+    ClosuresHandle { _keypress: func }
 }
