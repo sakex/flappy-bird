@@ -3,7 +3,7 @@ name = "wasm-flappy-bird"
 version = "0.1.0"
 authors = ["alexandre <alexandre@senges.ch>"]
 edition = "2018"
-license = "gplv2"
+license-file = "LICENSE"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
