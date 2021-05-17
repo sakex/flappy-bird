@@ -2,17 +2,14 @@ use crate::game::bird::Bird;
 use crate::game::pipe::Pipe;
 use crate::game::{bird, pipe};
 use crate::utils::request_animation_frame;
+use futures::channel::oneshot;
 use neat_gru::neural_network::nn::NeuralNetwork;
 use rand::prelude::ThreadRng;
 use rand::Rng;
 use std::sync::Arc;
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
-use wasm_bindgen::__rt::std::cell::RefCell;
 use wasm_bindgen::__rt::std::sync::Mutex;
-use wasm_bindgen_futures::JsFuture;
-use futures::channel::oneshot;
-
 
 pub trait Render {
     fn render(&self, canvas_ctx: &web_sys::CanvasRenderingContext2d);
@@ -54,7 +51,11 @@ impl Game {
         }
     }
 
-    pub async fn run_game(width: f64, height: f64, networks: Vec<NeuralNetwork<f64>>) -> Arc<Mutex<Game>> {
+    pub async fn run_game(
+        width: f64,
+        height: f64,
+        networks: Vec<NeuralNetwork<f64>>,
+    ) -> Arc<Mutex<Game>> {
         let game = {
             let document = web_sys::window().unwrap().document().unwrap();
             let canvas = document.get_element_by_id("canvas").unwrap();
@@ -76,7 +77,7 @@ impl Game {
         };
         let game_cp = game.clone();
 
-        let (sender, receiver) = oneshot::channel::<i32>();
+        let (sender, receiver) = oneshot::channel::<()>();
 
         {
             let sender = Arc::new(Mutex::new(Some(sender)));
@@ -96,14 +97,14 @@ impl Game {
                     request_animation_frame(f.lock().unwrap().as_ref().unwrap());
                 } else {
                     let lock = sender.lock().unwrap().take();
-                    lock.unwrap().send(2);
+                    lock.unwrap().send(()).unwrap();
                 }
             }) as Box<dyn FnMut()>));
             {
                 request_animation_frame(g.lock().unwrap().as_ref().unwrap());
             }
         }
-        receiver.await;
+        receiver.await.unwrap();
         game_cp
     }
 

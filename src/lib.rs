@@ -8,13 +8,8 @@ use crate::training_simulation::TrainingSimulation;
 use crate::utils::set_panic_hook;
 use neat_gru::train::train::Train;
 use serde::{Deserialize, Serialize};
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::sync::Arc;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
-use wasm_bindgen_futures::{spawn_local, JsFuture};
-use js_sys::Promise;
+use wasm_bindgen_futures::spawn_local;
 
 #[wasm_bindgen]
 extern "C" {
