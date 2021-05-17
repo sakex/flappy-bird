@@ -1,5 +1,5 @@
 use crate::game::bird::Bird;
-use crate::game::pipe::Pipe;
+use crate::game::pipe::{Pipe, HOLE_SIZE};
 use crate::game::{bird, pipe};
 use crate::utils::request_animation_frame;
 use futures::channel::oneshot;
@@ -109,20 +109,15 @@ impl Game {
     }
 
     fn add_pipe(&mut self) {
-        let y = if self.last_pipe_up {
-            -self.rng.gen_range(0.0..(pipe::HEIGHT / 4.0))
-        } else {
-            self.height - self.rng.gen_range(0.0..(pipe::HEIGHT / 2.0)) - pipe::HEIGHT / 2.0
-        };
-        self.last_pipe_up = !self.last_pipe_up;
+        let y = self.height - self.rng.gen_range(self.height * 0.2..(self.height * 0.8 - HOLE_SIZE));
 
         match self.pipes.last() {
             None => {
-                self.pipes.push(Pipe::new(bird::X + 30.0, y));
+                self.pipes.push(Pipe::new(bird::X + 300.0, y));
             }
             Some(Pipe { x, .. }) => {
                 let x = *x;
-                self.pipes.push(Pipe::new(x + pipe::WIDTH * 2.0, y));
+                self.pipes.push(Pipe::new(x + pipe::WIDTH * 5.0, y));
             }
         }
     }
@@ -149,10 +144,10 @@ impl Game {
         let second_pipe = &self.pipes[1];
 
         let first_x_input = (first_pipe.x * 2.0 - self.width) / self.width;
-        let first_y_input = (first_pipe.y * 2.0 - self.height) / self.height;
+        let first_y_input = (first_pipe.hole * 2.0 - self.height) / self.height;
 
         let second_x_input = (second_pipe.x * 2.0 - self.width) / self.width;
-        let second_y_input = (second_pipe.y * 2.0 - self.height) / self.height;
+        let second_y_input = (second_pipe.hole * 2.0 - self.height) / self.height;
 
         let mut inputs = vec![
             first_x_input,
@@ -185,8 +180,7 @@ impl Game {
             && first_pipe.x + pipe::WIDTH >= bird::X - bird::RADIUS;
         if overlap_x {
             self.birds.retain(|bird_ref| {
-                let alive = !(bird_ref.y + bird::RADIUS >= first_pipe.y
-                    && bird_ref.y - bird::RADIUS <= first_pipe.y + pipe::HEIGHT);
+                let alive = !( bird_ref.y + bird::RADIUS >= first_pipe.y || bird_ref.y - bird::RADIUS <= first_pipe.y - HOLE_SIZE);
                 if !alive {
                     scores[bird_ref.index] = current_score;
                 }
@@ -199,8 +193,7 @@ impl Game {
             && second_pipe.x + pipe::WIDTH >= bird::X - bird::RADIUS;
         if overlap_x {
             self.birds.retain(|bird_ref| {
-                let alive = bird_ref.y + bird::RADIUS <= second_pipe.y
-                    && bird_ref.y >= second_pipe.y + pipe::HEIGHT;
+                let alive = !( bird_ref.y + bird::RADIUS >= second_pipe.y || bird_ref.y - bird::RADIUS <= second_pipe.y - HOLE_SIZE);
                 if !alive {
                     scores[bird_ref.index] = current_score;
                 }
