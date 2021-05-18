@@ -33,14 +33,18 @@ async fn run_training() {
     let mut sim = TrainingSimulation::new(700.0, 800.0);
     let mut runner: Train<TrainingSimulation, f64> = Train::new(&mut sim);
     runner
-        .inputs(5)
-        .outputs(2)
+        .inputs(3)
+        .outputs(1)
         .iterations(5000)
-        .delta_threshold(3.0)
-        .formula(4.0, 4.0, 4.0)
-        .max_layers(100)
-        .max_per_layers(100)
-        .max_individuals(250)
+        .delta_threshold(1.0)
+        .formula(0.4, 0.4, 0.8)
+        .max_layers(10)
+        .max_per_layers(10)
+        .max_individuals(500)
+        .access_train_object(Box::new(|train| {
+            let species_count = train.species_count();
+            train.simulation.species_count = species_count;
+        }))
         .start_async()
         .await;
 }

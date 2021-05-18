@@ -8,7 +8,7 @@ use rand::prelude::ThreadRng;
 use rand::Rng;
 use std::sync::Arc;
 use wasm_bindgen::closure::Closure;
-use wasm_bindgen::JsCast;
+use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen::__rt::std::sync::Mutex;
 
 pub trait Render {
@@ -20,9 +20,11 @@ pub struct Game {
     birds: Vec<Bird>,
     pub scores: Vec<f64>,
     rng: ThreadRng,
-    last_pipe_up: bool,
     width: f64,
     height: f64,
+    species_count: usize,
+    generation: usize,
+    ticks: usize,
     current_score: f64,
     canvas_ctx: Arc<Mutex<web_sys::CanvasRenderingContext2d>>,
 }
@@ -35,25 +37,31 @@ impl Game {
     pub fn new(
         width: f64,
         height: f64,
+        species_count: usize,
+        generation: usize,
         canvas_ctx: Arc<Mutex<web_sys::CanvasRenderingContext2d>>,
     ) -> Game {
         let rng = rand::thread_rng();
         Game {
             width,
             height,
+            species_count,
             rng,
             canvas_ctx,
+            generation,
             pipes: Vec::new(),
             birds: Vec::new(),
             scores: Vec::new(),
             current_score: 0.0,
-            last_pipe_up: false,
+            ticks: 0,
         }
     }
 
     pub async fn run_game(
         width: f64,
         height: f64,
+        species_count: usize,
+        generation: usize,
         networks: Vec<NeuralNetwork<f64>>,
     ) -> Arc<Mutex<Game>> {
         let game = {
@@ -73,7 +81,7 @@ impl Game {
                     .dyn_into::<web_sys::CanvasRenderingContext2d>()
                     .unwrap(),
             ));
-            Arc::new(Mutex::new(Game::new(width, height, context)))
+            Arc::new(Mutex::new(Game::new(width, height, species_count, generation, context)))
         };
         let game_cp = game.clone();
 
@@ -113,7 +121,7 @@ impl Game {
 
         match self.pipes.last() {
             None => {
-                self.pipes.push(Pipe::new(bird::X + 300.0, y));
+                self.pipes.push(Pipe::new(self.width, y));
             }
             Some(Pipe { x, .. }) => {
                 let x = *x;
@@ -140,32 +148,31 @@ impl Game {
     }
 
     pub fn make_decisions(&mut self) {
-        let first_pipe = &self.pipes[0];
-        let second_pipe = &self.pipes[1];
+        let first_pipe = if self.pipes[0].x + pipe::WIDTH >= bird::X - bird::RADIUS {
+            &self.pipes[0]
+        } else {
+            &self.pipes[1]
+        };
 
         let first_x_input = (first_pipe.x * 2.0 - self.width) / self.width;
         let first_y_input = (first_pipe.hole * 2.0 - self.height) / self.height;
 
-        let second_x_input = (second_pipe.x * 2.0 - self.width) / self.width;
-        let second_y_input = (second_pipe.hole * 2.0 - self.height) / self.height;
-
-        let mut inputs = vec![
+        let mut inputs = [
             first_x_input,
             first_y_input,
-            second_x_input,
-            second_y_input,
             0.0,
         ];
 
         for bird in &mut self.birds {
-            inputs[4] = (bird.y * 2.0 - self.height) / self.height;
+            inputs[2] = (bird.y * 2.0 - self.height) / self.height;
             bird.make_decision(&inputs);
         }
     }
 
     pub fn handle_collisions(&mut self) {
         let height = self.height;
-        let current_score = self.current_score;
+        let current_score = self.ticks as f64;
+        self.ticks += 1;
         let scores = &mut self.scores;
         self.birds.retain(|bird_ref| {
             let alive = bird_ref.y + bird::RADIUS <= height && bird_ref.y - bird::RADIUS >= 0.0;
@@ -235,6 +242,13 @@ impl Game {
         for pipe in &self.pipes {
             pipe.render(&canvas_ctx);
         }
+        canvas_ctx.set_font("30px Arial");
+        canvas_ctx.set_fill_style(&JsValue::from_str("black"));
+        canvas_ctx.fill_text(&*format!("{}", self.current_score), self.width / 2.0 - 30.0, 30.0).unwrap();
+        canvas_ctx.fill_text(&*format!("Alive: {}", self.birds.len()), self.width / 2.0 - 45.0, self.height - 90.0).unwrap();
+        canvas_ctx.fill_text(&*format!("Species: {}", self.species_count), self.width / 2.0 - 75.0, self.height - 60.0).unwrap();
+        canvas_ctx.fill_text(&*format!("Generation: {}", self.generation), self.width / 2.0 - 90.0, self.height - 30.0).unwrap();
+
     }
 
     pub fn ended(&self) -> bool {
