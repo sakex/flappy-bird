@@ -7,9 +7,9 @@ use neat_gru::neural_network::nn::NeuralNetwork;
 use rand::prelude::ThreadRng;
 use rand::Rng;
 use std::sync::Arc;
+use wasm_bindgen::__rt::std::sync::Mutex;
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::{JsCast, JsValue};
-use wasm_bindgen::__rt::std::sync::Mutex;
 
 pub trait Render {
     fn render(&self, canvas_ctx: &web_sys::CanvasRenderingContext2d);
@@ -54,10 +54,14 @@ impl PlayerHandler {
 impl Drop for PlayerHandler {
     fn drop(&mut self) {
         let document = web_sys::window().unwrap().document().unwrap();
-        document.remove_event_listener_with_callback("keydown", &self.event_listener.as_ref().unchecked_ref()).unwrap();
+        document
+            .remove_event_listener_with_callback(
+                "keydown",
+                &self.event_listener.as_ref().unchecked_ref(),
+            )
+            .unwrap();
     }
 }
-
 
 pub struct Game {
     pipes: Vec<Pipe>,
@@ -93,7 +97,6 @@ impl Game {
         } else {
             (None, true)
         };
-
 
         let rng = rand::thread_rng();
         Game {
@@ -147,7 +150,14 @@ impl Game {
                     .dyn_into::<web_sys::CanvasRenderingContext2d>()
                     .unwrap(),
             ));
-            Arc::new(Mutex::new(Game::new(width, height, species_count, generation, player_checked, context)))
+            Arc::new(Mutex::new(Game::new(
+                width,
+                height,
+                species_count,
+                generation,
+                player_checked,
+                context,
+            )))
         };
         let game_cp = game.clone();
 
@@ -201,7 +211,10 @@ impl Game {
     }
 
     fn add_pipe(&mut self) {
-        let y = self.height - self.rng.gen_range(self.height * 0.2..(self.height * 0.8 - HOLE_SIZE));
+        let y = self.height
+            - self
+                .rng
+                .gen_range(self.height * 0.2..(self.height * 0.8 - HOLE_SIZE));
 
         match self.pipes.last() {
             None => {
@@ -244,11 +257,7 @@ impl Game {
         let first_x_input = (first_pipe.x * 2.0 - self.width) / self.width;
         let first_y_input = (first_pipe.hole * 2.0 - self.height) / self.height;
 
-        let mut inputs = [
-            first_x_input,
-            first_y_input,
-            0.0,
-        ];
+        let mut inputs = [first_x_input, first_y_input, 0.0];
 
         for bird in &mut self.birds {
             inputs[2] = (bird.y * 2.0 - self.height) / self.height;
@@ -270,7 +279,8 @@ impl Game {
         let scores = &mut self.scores;
         if overlap_x {
             self.birds.retain(|bird_ref| {
-                let alive = !(bird_ref.y + bird::RADIUS >= pipe_ref.y || bird_ref.y - bird::RADIUS <= pipe_ref.y - HOLE_SIZE);
+                let alive = !(bird_ref.y + bird::RADIUS >= pipe_ref.y
+                    || bird_ref.y - bird::RADIUS <= pipe_ref.y - HOLE_SIZE);
                 if !alive {
                     scores[bird_ref.index] = current_score;
                 }
@@ -279,7 +289,8 @@ impl Game {
 
             if let Some(player) = &mut self.player {
                 let player_bird = &player.bird;
-                let alive = !(player_bird.y + bird::RADIUS >= pipe_ref.y || player_bird.y - bird::RADIUS <= pipe_ref.y - HOLE_SIZE);
+                let alive = !(player_bird.y + bird::RADIUS >= pipe_ref.y
+                    || player_bird.y - bird::RADIUS <= pipe_ref.y - HOLE_SIZE);
                 if !alive {
                     self.player.take();
                 }
@@ -303,7 +314,8 @@ impl Game {
 
         if let Some(player) = &mut self.player {
             let player_bird = &player.bird;
-            let alive = player_bird.y + bird::RADIUS <= height && player_bird.y - bird::RADIUS >= 0.0;
+            let alive =
+                player_bird.y + bird::RADIUS <= height && player_bird.y - bird::RADIUS >= 0.0;
             if !alive {
                 self.player.take();
             }
@@ -353,10 +365,34 @@ impl Game {
         }
         canvas_ctx.set_font("30px Arial");
         canvas_ctx.set_fill_style(&JsValue::from_str("black"));
-        canvas_ctx.fill_text(&*format!("{}", self.current_score), self.width / 2.0 - 30.0, 30.0).unwrap();
-        canvas_ctx.fill_text(&*format!("Alive: {}", self.birds.len()), self.width / 2.0 - 45.0, self.height - 90.0).unwrap();
-        canvas_ctx.fill_text(&*format!("Species: {}", self.species_count), self.width / 2.0 - 75.0, self.height - 60.0).unwrap();
-        canvas_ctx.fill_text(&*format!("Generation: {}", self.generation), self.width / 2.0 - 90.0, self.height - 30.0).unwrap();
+        canvas_ctx
+            .fill_text(
+                &*format!("{}", self.current_score),
+                self.width / 2.0 - 30.0,
+                30.0,
+            )
+            .unwrap();
+        canvas_ctx
+            .fill_text(
+                &*format!("Alive: {}", self.birds.len()),
+                self.width / 2.0 - 45.0,
+                self.height - 90.0,
+            )
+            .unwrap();
+        canvas_ctx
+            .fill_text(
+                &*format!("Species: {}", self.species_count),
+                self.width / 2.0 - 75.0,
+                self.height - 60.0,
+            )
+            .unwrap();
+        canvas_ctx
+            .fill_text(
+                &*format!("Generation: {}", self.generation),
+                self.width / 2.0 - 90.0,
+                self.height - 30.0,
+            )
+            .unwrap();
     }
 
     pub fn ended(&self) -> bool {

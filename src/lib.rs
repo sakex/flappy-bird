@@ -40,23 +40,21 @@ async fn run_training(params: GameParams) {
 
 #[wasm_bindgen]
 pub struct GameParams {
-    pub game_type: i32
+    pub game_type: i32,
 }
 
 #[wasm_bindgen]
 impl GameParams {
     #[wasm_bindgen(constructor)]
     pub fn new(game_type: i32) -> GameParams {
-        GameParams {
-            game_type
-        }
+        GameParams { game_type }
     }
 }
 
 impl Clone for GameParams {
     fn clone(&self) -> GameParams {
         GameParams {
-            game_type: self.game_type
+            game_type: self.game_type,
         }
     }
 }

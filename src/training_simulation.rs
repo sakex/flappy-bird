@@ -1,9 +1,9 @@
 use crate::game::game::Game;
+use crate::GameParams;
 use async_trait::async_trait;
 use neat_gru::game::GameAsync;
 use neat_gru::neural_network::nn::NeuralNetwork;
 use neat_gru::topology::topology::Topology;
-use crate::GameParams;
 
 pub struct TrainingSimulation {
     width: f64,
@@ -28,7 +28,6 @@ impl TrainingSimulation {
             species_count: 1,
         }
     }
-
 }
 
 impl neat_gru::game::Game<f64> for TrainingSimulation {

@@ -58,18 +58,36 @@ impl Render for Bird {
         canvas_ctx.begin_path();
         canvas_ctx.set_line_width(5.0);
         canvas_ctx.set_fill_style(&JsValue::from_str(&*self.color));
-        canvas_ctx.arc(X, self.y, RADIUS, 0.0, std::f64::consts::PI * 2.0).unwrap();
+        canvas_ctx
+            .arc(X, self.y, RADIUS, 0.0, std::f64::consts::PI * 2.0)
+            .unwrap();
         canvas_ctx.fill();
         // Eye
         canvas_ctx.begin_path();
         canvas_ctx.set_line_width(5.0);
         canvas_ctx.set_fill_style(&JsValue::from_str("white"));
-        canvas_ctx.arc(X + RADIUS / 3.0, self.y - RADIUS / 2.0, RADIUS / 2.0, 0.0, std::f64::consts::PI * 2.0).unwrap();
+        canvas_ctx
+            .arc(
+                X + RADIUS / 3.0,
+                self.y - RADIUS / 2.0,
+                RADIUS / 2.0,
+                0.0,
+                std::f64::consts::PI * 2.0,
+            )
+            .unwrap();
         canvas_ctx.fill();
 
         // Eye dot
         canvas_ctx.begin_path();
-        canvas_ctx.arc(X + RADIUS / 2.0, self.y - RADIUS / 2.0, 5.0, 0.0, std::f64::consts::PI * 2.0).unwrap();
+        canvas_ctx
+            .arc(
+                X + RADIUS / 2.0,
+                self.y - RADIUS / 2.0,
+                5.0,
+                0.0,
+                std::f64::consts::PI * 2.0,
+            )
+            .unwrap();
         canvas_ctx.set_fill_style(&black);
         canvas_ctx.fill();
         // Mouth
@@ -77,14 +95,34 @@ impl Render for Bird {
         if !is_player {
             canvas_ctx.set_fill_style(&JsValue::from_str("#f76946"));
         }
-        canvas_ctx.ellipse(X + RADIUS / 1.2, self.y + 5.0, RADIUS / 2.0, RADIUS / 2.8, 0.0, 0.0, std::f64::consts::PI * 2.0).unwrap();
+        canvas_ctx
+            .ellipse(
+                X + RADIUS / 1.2,
+                self.y + 5.0,
+                RADIUS / 2.0,
+                RADIUS / 2.8,
+                0.0,
+                0.0,
+                std::f64::consts::PI * 2.0,
+            )
+            .unwrap();
         canvas_ctx.fill();
         // Wing
         canvas_ctx.begin_path();
         if !is_player {
             canvas_ctx.set_fill_style(&JsValue::from_str("#f7ea25"));
         }
-        canvas_ctx.ellipse(X - RADIUS / 1.5, self.y + RADIUS / 2.0, RADIUS / 2.0, RADIUS / 3.0, std::f64::consts::PI * 1.9, 0.0, std::f64::consts::PI * 2.0).unwrap();
+        canvas_ctx
+            .ellipse(
+                X - RADIUS / 1.5,
+                self.y + RADIUS / 2.0,
+                RADIUS / 2.0,
+                RADIUS / 3.0,
+                std::f64::consts::PI * 1.9,
+                0.0,
+                std::f64::consts::PI * 2.0,
+            )
+            .unwrap();
         canvas_ctx.fill();
     }
 }
