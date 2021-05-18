@@ -2,8 +2,8 @@ use crate::game::game::Render;
 use wasm_bindgen::JsValue;
 
 pub const WIDTH: f64 = 100.0;
-pub const HEIGHT: f64 = 500.0;
-pub const HOLE_SIZE: f64 = 200.0;
+pub const HEIGHT: f64 = 750.0;
+pub const HOLE_SIZE: f64 = 80.0;
 pub const BORDER_WIDTH: f64 = 20.0;
 pub const LINE_WIDTH: f64 = 5.0;
 
@@ -15,7 +15,7 @@ pub struct Pipe {
 
 impl Pipe {
     pub fn new(x: f64, y: f64) -> Pipe {
-        Pipe { x, y , hole: y - HOLE_SIZE /2.}
+        Pipe { x, y , hole: y - HOLE_SIZE / 2.}
     }
 
     pub fn move_left(&mut self) {

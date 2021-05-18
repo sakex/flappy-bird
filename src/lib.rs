@@ -34,10 +34,10 @@ async fn run_training() {
     let mut runner: Train<TrainingSimulation, f64> = Train::new(&mut sim);
     runner
         .inputs(3)
-        .outputs(1)
+        .outputs(2)
         .iterations(5000)
-        .delta_threshold(1.0)
-        .formula(0.4, 0.4, 0.8)
+        .delta_threshold(2.)
+        .formula(0.8, 0.8, 0.3)
         .max_layers(10)
         .max_per_layers(10)
         .max_individuals(500)

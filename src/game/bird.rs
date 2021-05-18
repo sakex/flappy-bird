@@ -9,7 +9,7 @@ pub struct Bird {
     pub index: usize,
     pub y: f64,
     color: String,
-    velocity: f64,
+    pub velocity: f64,
     net: NeuralNetwork<f64>,
 }
 
@@ -30,12 +30,12 @@ impl Bird {
     }
 
     fn jump(&mut self) {
-        self.velocity = 10.0;
+        self.velocity += 1.0;
     }
 
     pub fn make_decision(&mut self, inputs: &[f64]) {
         let output = self.net.compute(inputs);
-        if output[0] >= 0.0 {
+        if output[0] >= output[1] {
             self.jump();
         }
     }

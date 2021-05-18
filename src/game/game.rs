@@ -117,15 +117,15 @@ impl Game {
     }
 
     fn add_pipe(&mut self) {
-        let y = self.height - self.rng.gen_range(self.height * 0.2..(self.height * 0.8 - HOLE_SIZE));
+        let y = self.height - self.rng.gen_range(self.height * 0.1..(self.height * 0.9 - HOLE_SIZE));
 
         match self.pipes.last() {
             None => {
-                self.pipes.push(Pipe::new(self.width, y));
+                self.pipes.push(Pipe::new(self.width, 0.25 * self.height + 0.5 * y));
             }
             Some(Pipe { x, .. }) => {
                 let x = *x;
-                self.pipes.push(Pipe::new(x + pipe::WIDTH * 5.0, y));
+                self.pipes.push(Pipe::new(x + 500.0, y));
             }
         }
     }
@@ -154,17 +154,15 @@ impl Game {
             &self.pipes[1]
         };
 
-        let first_x_input = (first_pipe.x * 2.0 - self.width) / self.width;
-        let first_y_input = (first_pipe.hole * 2.0 - self.height) / self.height;
-
         let mut inputs = [
-            first_x_input,
-            first_y_input,
-            0.0,
+            (first_pipe.x * 2.0 - self.width) / self.width,
+            0.,
+            0.
         ];
 
         for bird in &mut self.birds {
-            inputs[2] = (bird.y * 2.0 - self.height) / self.height;
+            inputs[1] = (bird.y - first_pipe.hole) / self.height;
+            inputs[2] = 0.01 * bird.velocity;
             bird.make_decision(&inputs);
         }
     }
@@ -187,7 +185,7 @@ impl Game {
             && first_pipe.x + pipe::WIDTH >= bird::X - bird::RADIUS;
         if overlap_x {
             self.birds.retain(|bird_ref| {
-                let alive = !( bird_ref.y + bird::RADIUS >= first_pipe.y || bird_ref.y - bird::RADIUS <= first_pipe.y - HOLE_SIZE);
+                let alive = !(bird_ref.y + bird::RADIUS >= first_pipe.y || bird_ref.y - bird::RADIUS <= first_pipe.y - HOLE_SIZE);
                 if !alive {
                     scores[bird_ref.index] = current_score;
                 }
@@ -200,7 +198,7 @@ impl Game {
             && second_pipe.x + pipe::WIDTH >= bird::X - bird::RADIUS;
         if overlap_x {
             self.birds.retain(|bird_ref| {
-                let alive = !( bird_ref.y + bird::RADIUS >= second_pipe.y || bird_ref.y - bird::RADIUS <= second_pipe.y - HOLE_SIZE);
+                let alive = !(bird_ref.y + bird::RADIUS >= second_pipe.y || bird_ref.y - bird::RADIUS <= second_pipe.y - HOLE_SIZE);
                 if !alive {
                     scores[bird_ref.index] = current_score;
                 }
@@ -248,7 +246,6 @@ impl Game {
         canvas_ctx.fill_text(&*format!("Alive: {}", self.birds.len()), self.width / 2.0 - 45.0, self.height - 90.0).unwrap();
         canvas_ctx.fill_text(&*format!("Species: {}", self.species_count), self.width / 2.0 - 75.0, self.height - 60.0).unwrap();
         canvas_ctx.fill_text(&*format!("Generation: {}", self.generation), self.width / 2.0 - 90.0, self.height - 30.0).unwrap();
-
     }
 
     pub fn ended(&self) -> bool {
