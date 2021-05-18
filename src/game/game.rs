@@ -236,7 +236,7 @@ impl Game {
     pub fn render(&self) {
         let canvas_ctx = &*self.canvas_ctx.lock().unwrap();
         canvas_ctx.clear_rect(0.0, 0.0, self.width, self.height);
-        for bird in &self.birds {
+        for bird in self.birds.iter().take(250) {
             bird.render(&canvas_ctx);
         }
         for pipe in &self.pipes {
