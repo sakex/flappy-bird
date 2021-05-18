@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>Flappy Bird WASM</title>
     <style>
         #canvas {
             border: 1px solid black;
@@ -11,14 +11,42 @@
     </style>
 </head>
 <body>
+<h1>
+    Flappy Bird WASM
+</h1>
+<p>
+    <label for="game_type">Game type</label>
+    <select id="game_type">
+        <option value="0">Classic</option>
+        <option value="1">Aerodynamics</option>
+    </select>
+</p>
+<p>
+    <label for="player">Give me the black bird for next generation</label><input id="player" type="checkbox"/>
+</p>
+<p>
+    <button id="start">Start</button>
+</p>
+
 <canvas id="canvas" width="700px" height="800px"></canvas>
 <script type="module">
-    import init, {start} from '/wasm/wasm_flappy_bird.js';
-    const run = async () => {
+    import init, {start, GameParams} from '/wasm/wasm_flappy_bird.js';
+
+    const loadWasm = async () => {
         await init();
-        start();
+
+        const button = document.querySelector("#start");
+
+        button.addEventListener("click", () => {
+            const gameType = parseInt(document.querySelector("#game_type").value);
+            const params = new GameParams(gameType);
+
+            console.log(params.game_type);
+
+            start(params);
+        });
     }
-    run();
+    loadWasm();
 </script>
 </body>
 </html>

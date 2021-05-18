@@ -15,6 +15,50 @@ pub trait Render {
     fn render(&self, canvas_ctx: &web_sys::CanvasRenderingContext2d);
 }
 
+struct PlayerHandler {
+    bird: Bird,
+    space_pressed: Arc<Mutex<bool>>,
+    event_listener: Closure<dyn FnMut(web_sys::KeyboardEvent)>,
+}
+
+impl PlayerHandler {
+    pub fn new() -> PlayerHandler {
+        let space_pressed = Arc::new(Mutex::new(false));
+        let pressed_clone = space_pressed.clone();
+
+        let func = Closure::wrap(Box::new(move |js_event: web_sys::KeyboardEvent| {
+            *pressed_clone.lock().unwrap() = js_event.key_code() == 32;
+        }) as Box<dyn FnMut(web_sys::KeyboardEvent)>);
+
+        let document = web_sys::window().unwrap().document().unwrap();
+
+        document
+            .add_event_listener_with_callback("keydown", func.as_ref().unchecked_ref())
+            .unwrap();
+
+        PlayerHandler {
+            space_pressed,
+            event_listener: func,
+            bird: Bird::new_without_handler(usize::MAX, String::from("black")),
+        }
+    }
+
+    pub fn is_pressed(&self) -> bool {
+        let pressed = &mut *self.space_pressed.lock().unwrap();
+        let pressed_cp = *pressed;
+        *pressed = false;
+        pressed_cp
+    }
+}
+
+impl Drop for PlayerHandler {
+    fn drop(&mut self) {
+        let document = web_sys::window().unwrap().document().unwrap();
+        document.remove_event_listener_with_callback("keydown", &self.event_listener.as_ref().unchecked_ref()).unwrap();
+    }
+}
+
+
 pub struct Game {
     pipes: Vec<Pipe>,
     birds: Vec<Bird>,
@@ -26,6 +70,8 @@ pub struct Game {
     generation: usize,
     ticks: usize,
     current_score: f64,
+    pub started: bool,
+    player: Option<PlayerHandler>,
     canvas_ctx: Arc<Mutex<web_sys::CanvasRenderingContext2d>>,
 }
 
@@ -39,8 +85,16 @@ impl Game {
         height: f64,
         species_count: usize,
         generation: usize,
+        player: bool,
         canvas_ctx: Arc<Mutex<web_sys::CanvasRenderingContext2d>>,
     ) -> Game {
+        let (space_pressed, started) = if player {
+            (Some(PlayerHandler::new()), false)
+        } else {
+            (None, true)
+        };
+
+
         let rng = rand::thread_rng();
         Game {
             width,
@@ -49,6 +103,8 @@ impl Game {
             rng,
             canvas_ctx,
             generation,
+            player: space_pressed,
+            started,
             pipes: Vec::new(),
             birds: Vec::new(),
             scores: Vec::new(),
@@ -66,7 +122,17 @@ impl Game {
     ) -> Arc<Mutex<Game>> {
         let game = {
             let document = web_sys::window().unwrap().document().unwrap();
+            let player_checkbox = document.get_element_by_id("player").unwrap();
+            let player_checkbox = player_checkbox
+                .dyn_into::<web_sys::HtmlInputElement>()
+                .map_err(|_| ())
+                .unwrap();
+            let player_checked = player_checkbox.checked();
+            let start_button = document.get_element_by_id("start").unwrap();
+            start_button.set_attribute("style", "display: none;");
+
             let canvas = document.get_element_by_id("canvas").unwrap();
+
             let canvas: Arc<web_sys::HtmlCanvasElement> = Arc::new(
                 canvas
                     .dyn_into::<web_sys::HtmlCanvasElement>()
@@ -81,7 +147,7 @@ impl Game {
                     .dyn_into::<web_sys::CanvasRenderingContext2d>()
                     .unwrap(),
             ));
-            Arc::new(Mutex::new(Game::new(width, height, species_count, generation, context)))
+            Arc::new(Mutex::new(Game::new(width, height, species_count, generation, player_checked, context)))
         };
         let game_cp = game.clone();
 
@@ -97,6 +163,12 @@ impl Game {
 
             *g.lock().unwrap() = Some(Closure::wrap(Box::new(move || {
                 let game_obj = &mut *game.lock().unwrap();
+                if !game_obj.started {
+                    if !game_obj.check_started() {
+                        request_animation_frame(f.lock().unwrap().as_ref().unwrap());
+                        return;
+                    }
+                }
                 game_obj.make_decisions();
                 game_obj.game_logic();
                 game_obj.handle_collisions();
@@ -104,6 +176,10 @@ impl Game {
                 if !game_obj.ended() {
                     request_animation_frame(f.lock().unwrap().as_ref().unwrap());
                 } else {
+                    let document = web_sys::window().unwrap().document().unwrap();
+                    let start_button = document.get_element_by_id("start").unwrap();
+                    start_button.set_attribute("style", "display: none;");
+
                     let lock = sender.lock().unwrap().take();
                     lock.unwrap().send(()).unwrap();
                 }
@@ -114,6 +190,14 @@ impl Game {
         }
         receiver.await.unwrap();
         game_cp
+    }
+
+    fn check_started(&mut self) -> bool {
+        let started = self.player.as_ref().unwrap().is_pressed();
+        if started {
+            self.started = true;
+        }
+        started
     }
 
     fn add_pipe(&mut self) {
@@ -145,6 +229,9 @@ impl Game {
         for bird in &mut self.birds {
             bird.y_velocity();
         }
+        if let Some(player) = &mut self.player {
+            player.bird.y_velocity();
+        }
     }
 
     pub fn make_decisions(&mut self) {
@@ -167,6 +254,37 @@ impl Game {
             inputs[2] = (bird.y * 2.0 - self.height) / self.height;
             bird.make_decision(&inputs);
         }
+        if let Some(player) = &mut self.player {
+            if player.is_pressed() {
+                player.bird.jump();
+            }
+        }
+    }
+
+    fn handle_pipe_collision(&mut self, index: usize) {
+        let pipe_ref = &self.pipes[index];
+        let overlap_x = pipe_ref.x <= bird::X + bird::RADIUS
+            && pipe_ref.x + pipe::WIDTH >= bird::X - bird::RADIUS;
+        let current_score = self.ticks as f64;
+
+        let scores = &mut self.scores;
+        if overlap_x {
+            self.birds.retain(|bird_ref| {
+                let alive = !(bird_ref.y + bird::RADIUS >= pipe_ref.y || bird_ref.y - bird::RADIUS <= pipe_ref.y - HOLE_SIZE);
+                if !alive {
+                    scores[bird_ref.index] = current_score;
+                }
+                alive
+            });
+
+            if let Some(player) = &mut self.player {
+                let player_bird = &player.bird;
+                let alive = !(player_bird.y + bird::RADIUS >= pipe_ref.y || player_bird.y - bird::RADIUS <= pipe_ref.y - HOLE_SIZE);
+                if !alive {
+                    self.player.take();
+                }
+            }
+        }
     }
 
     pub fn handle_collisions(&mut self) {
@@ -174,6 +292,7 @@ impl Game {
         let current_score = self.ticks as f64;
         self.ticks += 1;
         let scores = &mut self.scores;
+
         self.birds.retain(|bird_ref| {
             let alive = bird_ref.y + bird::RADIUS <= height && bird_ref.y - bird::RADIUS >= 0.0;
             if !alive {
@@ -182,31 +301,16 @@ impl Game {
             alive
         });
 
-        let first_pipe = &self.pipes[0];
-        let overlap_x = first_pipe.x <= bird::X + bird::RADIUS
-            && first_pipe.x + pipe::WIDTH >= bird::X - bird::RADIUS;
-        if overlap_x {
-            self.birds.retain(|bird_ref| {
-                let alive = !( bird_ref.y + bird::RADIUS >= first_pipe.y || bird_ref.y - bird::RADIUS <= first_pipe.y - HOLE_SIZE);
-                if !alive {
-                    scores[bird_ref.index] = current_score;
-                }
-                alive
-            });
+        if let Some(player) = &mut self.player {
+            let player_bird = &player.bird;
+            let alive = player_bird.y + bird::RADIUS <= height && player_bird.y - bird::RADIUS >= 0.0;
+            if !alive {
+                self.player.take();
+            }
         }
-        let second_pipe = &self.pipes[1];
 
-        let overlap_x = second_pipe.x <= bird::X + bird::RADIUS
-            && second_pipe.x + pipe::WIDTH >= bird::X - bird::RADIUS;
-        if overlap_x {
-            self.birds.retain(|bird_ref| {
-                let alive = !( bird_ref.y + bird::RADIUS >= second_pipe.y || bird_ref.y - bird::RADIUS <= second_pipe.y - HOLE_SIZE);
-                if !alive {
-                    scores[bird_ref.index] = current_score;
-                }
-                alive
-            });
-        }
+        self.handle_pipe_collision(0);
+        self.handle_pipe_collision(1);
     }
 
     pub fn game_logic(&mut self) {
@@ -215,9 +319,10 @@ impl Game {
     }
 
     fn random_color(&mut self) -> String {
-        let c1 = self.rng.gen_range(0..255);
-        let c2 = self.rng.gen_range(0..255);
-        let c3 = self.rng.gen_range(0..255);
+        // High value to not mix up with player
+        let c1 = self.rng.gen_range(100..255);
+        let c2 = self.rng.gen_range(100..255);
+        let c3 = self.rng.gen_range(100..255);
 
         format!("rgb({}, {}, {})", c1, c2, c3)
     }
@@ -239,6 +344,10 @@ impl Game {
         for bird in self.birds.iter().take(250) {
             bird.render(&canvas_ctx);
         }
+        if let Some(player) = &self.player {
+            let player_bird = &player.bird;
+            player_bird.render(&canvas_ctx);
+        }
         for pipe in &self.pipes {
             pipe.render(&canvas_ctx);
         }
@@ -248,10 +357,9 @@ impl Game {
         canvas_ctx.fill_text(&*format!("Alive: {}", self.birds.len()), self.width / 2.0 - 45.0, self.height - 90.0).unwrap();
         canvas_ctx.fill_text(&*format!("Species: {}", self.species_count), self.width / 2.0 - 75.0, self.height - 60.0).unwrap();
         canvas_ctx.fill_text(&*format!("Generation: {}", self.generation), self.width / 2.0 - 90.0, self.height - 30.0).unwrap();
-
     }
 
     pub fn ended(&self) -> bool {
-        self.birds.is_empty()
+        self.birds.is_empty() && self.player.is_none()
     }
 }

@@ -7,7 +7,6 @@ mod utils;
 use crate::training_simulation::TrainingSimulation;
 use crate::utils::set_panic_hook;
 use neat_gru::train::train::Train;
-use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
@@ -19,18 +18,8 @@ extern "C" {
     pub fn log(s: &str);
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct JsEvent {
-    pub which: i32,
-}
-
-#[wasm_bindgen]
-pub struct ClosuresHandle {
-    _keypress: Closure<dyn FnMut(web_sys::KeyboardEvent)>,
-}
-
-async fn run_training() {
-    let mut sim = TrainingSimulation::new(700.0, 800.0);
+async fn run_training(params: GameParams) {
+    let mut sim = TrainingSimulation::new(700.0, 800.0, params);
     let mut runner: Train<TrainingSimulation, f64> = Train::new(&mut sim);
     runner
         .inputs(3)
@@ -50,19 +39,31 @@ async fn run_training() {
 }
 
 #[wasm_bindgen]
-pub fn start() {
+pub struct GameParams {
+    pub game_type: i32
+}
+
+#[wasm_bindgen]
+impl GameParams {
+    #[wasm_bindgen(constructor)]
+    pub fn new(game_type: i32) -> GameParams {
+        GameParams {
+            game_type
+        }
+    }
+}
+
+impl Clone for GameParams {
+    fn clone(&self) -> GameParams {
+        GameParams {
+            game_type: self.game_type
+        }
+    }
+}
+
+#[wasm_bindgen]
+pub fn start(params: GameParams) {
     set_panic_hook();
 
-    /*let space_pressed = Rc::new(RefCell::new(false));
-    let pressed_clone = space_pressed.clone();
-
-    let func = Closure::wrap(Box::new(move |js_event: web_sys::KeyboardEvent| {
-        *pressed_clone.borrow_mut() = js_event.key_code() == 32;
-    }) as Box<dyn FnMut(web_sys::KeyboardEvent)>);*/
-
-    /*document
-    .add_event_listener_with_callback("keydown", func.as_ref().unchecked_ref())
-    .unwrap();*/
-
-    spawn_local(run_training());
+    spawn_local(run_training(params));
 }

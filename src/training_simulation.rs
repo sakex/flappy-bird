@@ -3,10 +3,12 @@ use async_trait::async_trait;
 use neat_gru::game::GameAsync;
 use neat_gru::neural_network::nn::NeuralNetwork;
 use neat_gru::topology::topology::Topology;
+use crate::GameParams;
 
 pub struct TrainingSimulation {
     width: f64,
     height: f64,
+    params: GameParams,
     networks: Option<Vec<NeuralNetwork<f64>>>,
     generation: usize,
     pub species_count: usize,
@@ -16,10 +18,11 @@ unsafe impl Send for TrainingSimulation {}
 unsafe impl Sync for TrainingSimulation {}
 
 impl TrainingSimulation {
-    pub fn new(width: f64, height: f64) -> TrainingSimulation {
+    pub fn new(width: f64, height: f64, params: GameParams) -> TrainingSimulation {
         TrainingSimulation {
             width,
             height,
+            params,
             generation: 0,
             networks: None,
             species_count: 1,
