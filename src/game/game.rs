@@ -1,5 +1,5 @@
 use crate::game::bird::Bird;
-use crate::game::pipe::{Pipe, HOLE_SIZE};
+use crate::game::pipe::Pipe;
 use crate::game::{bird, pipe};
 use crate::utils::request_animation_frame;
 use futures::channel::oneshot;
@@ -15,30 +15,45 @@ pub trait Render {
     fn render(&self, canvas_ctx: &web_sys::CanvasRenderingContext2d);
 }
 
-struct PlayerHandler {
-    bird: Bird,
+struct PlayerHandler<const GAME_TYPE: i32> {
+    bird: Bird<{ GAME_TYPE }>,
     space_pressed: Arc<Mutex<bool>>,
-    event_listener: Closure<dyn FnMut(web_sys::KeyboardEvent)>,
+    func_keydown: Closure<dyn FnMut(web_sys::KeyboardEvent)>,
+    func_keyup: Closure<dyn FnMut(web_sys::KeyboardEvent)>,
 }
 
-impl PlayerHandler {
-    pub fn new() -> PlayerHandler {
+impl<const GAME_TYPE: i32> PlayerHandler<{ GAME_TYPE }> {
+    pub fn new() -> PlayerHandler<{ GAME_TYPE }> {
         let space_pressed = Arc::new(Mutex::new(false));
         let pressed_clone = space_pressed.clone();
+        let pressed_clone2 = space_pressed.clone();
 
-        let func = Closure::wrap(Box::new(move |js_event: web_sys::KeyboardEvent| {
-            *pressed_clone.lock().unwrap() = js_event.key_code() == 32;
+        let func_keydown = Closure::wrap(Box::new(move |js_event: web_sys::KeyboardEvent| {
+            if js_event.key_code() == 32 {
+                *pressed_clone.lock().unwrap() = true;
+            }
+        }) as Box<dyn FnMut(web_sys::KeyboardEvent)>);
+
+        let func_keyup = Closure::wrap(Box::new(move |js_event: web_sys::KeyboardEvent| {
+            if js_event.key_code() == 32 {
+                *pressed_clone2.lock().unwrap() = false;
+            }
         }) as Box<dyn FnMut(web_sys::KeyboardEvent)>);
 
         let document = web_sys::window().unwrap().document().unwrap();
 
         document
-            .add_event_listener_with_callback("keydown", func.as_ref().unchecked_ref())
+            .add_event_listener_with_callback("keydown", func_keydown.as_ref().unchecked_ref())
+            .unwrap();
+
+        document
+            .add_event_listener_with_callback("keyup", func_keyup.as_ref().unchecked_ref())
             .unwrap();
 
         PlayerHandler {
             space_pressed,
-            event_listener: func,
+            func_keydown,
+            func_keyup,
             bird: Bird::new_without_handler(usize::MAX, String::from("black")),
         }
     }
@@ -46,26 +61,34 @@ impl PlayerHandler {
     pub fn is_pressed(&self) -> bool {
         let pressed = &mut *self.space_pressed.lock().unwrap();
         let pressed_cp = *pressed;
-        *pressed = false;
+        if GAME_TYPE == 0 {
+            *pressed = false;
+        }
         pressed_cp
     }
 }
 
-impl Drop for PlayerHandler {
+impl<const GAME_TYPE: i32> Drop for PlayerHandler<{ GAME_TYPE }> {
     fn drop(&mut self) {
         let document = web_sys::window().unwrap().document().unwrap();
         document
             .remove_event_listener_with_callback(
                 "keydown",
-                &self.event_listener.as_ref().unchecked_ref(),
+                &self.func_keydown.as_ref().unchecked_ref(),
+            )
+            .unwrap();
+        document
+            .remove_event_listener_with_callback(
+                "keyup",
+                &self.func_keyup.as_ref().unchecked_ref(),
             )
             .unwrap();
     }
 }
 
-pub struct Game {
-    pipes: Vec<Pipe>,
-    birds: Vec<Bird>,
+pub struct Game<const GAME_TYPE: i32> {
+    pipes: Vec<Pipe<{ GAME_TYPE }>>,
+    birds: Vec<Bird<{ GAME_TYPE }>>,
     pub scores: Vec<f64>,
     rng: ThreadRng,
     width: f64,
@@ -75,15 +98,15 @@ pub struct Game {
     ticks: usize,
     current_score: f64,
     pub started: bool,
-    player: Option<PlayerHandler>,
+    player: Option<PlayerHandler<{ GAME_TYPE }>>,
     canvas_ctx: Arc<Mutex<web_sys::CanvasRenderingContext2d>>,
 }
 
-unsafe impl Send for Game {}
+unsafe impl<const GAME_TYPE: i32> Send for Game<{ GAME_TYPE }> {}
 
-unsafe impl Sync for Game {}
+unsafe impl<const GAME_TYPE: i32> Sync for Game<{ GAME_TYPE }> {}
 
-impl Game {
+impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
     pub fn new(
         width: f64,
         height: f64,
@@ -91,7 +114,7 @@ impl Game {
         generation: usize,
         player: bool,
         canvas_ctx: Arc<Mutex<web_sys::CanvasRenderingContext2d>>,
-    ) -> Game {
+    ) -> Game<{ GAME_TYPE }> {
         let (space_pressed, started) = if player {
             (Some(PlayerHandler::new()), false)
         } else {
@@ -122,7 +145,7 @@ impl Game {
         species_count: usize,
         generation: usize,
         networks: Vec<NeuralNetwork<f64>>,
-    ) -> Arc<Mutex<Game>> {
+    ) -> Arc<Mutex<Game<{ GAME_TYPE }>>> {
         let game = {
             let document = web_sys::window().unwrap().document().unwrap();
             let player_checkbox = document.get_element_by_id("player").unwrap();
@@ -131,8 +154,6 @@ impl Game {
                 .map_err(|_| ())
                 .unwrap();
             let player_checked = player_checkbox.checked();
-            let start_button = document.get_element_by_id("start").unwrap();
-            start_button.set_attribute("style", "display: none;");
 
             let canvas = document.get_element_by_id("canvas").unwrap();
 
@@ -150,7 +171,7 @@ impl Game {
                     .dyn_into::<web_sys::CanvasRenderingContext2d>()
                     .unwrap(),
             ));
-            Arc::new(Mutex::new(Game::new(
+            Arc::new(Mutex::new(Game::<GAME_TYPE>::new(
                 width,
                 height,
                 species_count,
@@ -186,10 +207,6 @@ impl Game {
                 if !game_obj.ended() {
                     request_animation_frame(f.lock().unwrap().as_ref().unwrap());
                 } else {
-                    let document = web_sys::window().unwrap().document().unwrap();
-                    let start_button = document.get_element_by_id("start").unwrap();
-                    start_button.set_attribute("style", "display: none;");
-
                     let lock = sender.lock().unwrap().take();
                     lock.unwrap().send(()).unwrap();
                 }
@@ -213,16 +230,16 @@ impl Game {
     fn add_pipe(&mut self) {
         let y = self.height
             - self
-                .rng
-                .gen_range(self.height * 0.2..(self.height * 0.8 - HOLE_SIZE));
+            .rng
+            .gen_range(self.height * 0.1..(self.height * 0.9 - pipe::hole_size(GAME_TYPE)));
 
         match self.pipes.last() {
             None => {
-                self.pipes.push(Pipe::new(self.width, y));
+                self.pipes.push(Pipe::new(self.width, 0.25 * self.height + 0.5 * y));
             }
             Some(Pipe { x, .. }) => {
                 let x = *x;
-                self.pipes.push(Pipe::new(x + pipe::WIDTH * 5.0, y));
+                self.pipes.push(Pipe::new(x + 500.0, y));
             }
         }
     }
@@ -254,13 +271,14 @@ impl Game {
             &self.pipes[1]
         };
 
-        let first_x_input = (first_pipe.x * 2.0 - self.width) / self.width;
-        let first_y_input = (first_pipe.hole * 2.0 - self.height) / self.height;
 
-        let mut inputs = [first_x_input, first_y_input, 0.0];
+        let mut inputs = [(first_pipe.x * 2.0 - self.width) / self.width,
+            0.,
+            0.];
 
         for bird in &mut self.birds {
-            inputs[2] = (bird.y * 2.0 - self.height) / self.height;
+            inputs[1] = (bird.y - first_pipe.hole) / self.height;
+            inputs[2] = 0.01 * bird.velocity;
             bird.make_decision(&inputs);
         }
         if let Some(player) = &mut self.player {
@@ -277,10 +295,11 @@ impl Game {
         let current_score = self.ticks as f64;
 
         let scores = &mut self.scores;
+        let hole_size = pipe::hole_size(GAME_TYPE);
         if overlap_x {
             self.birds.retain(|bird_ref| {
                 let alive = !(bird_ref.y + bird::RADIUS >= pipe_ref.y
-                    || bird_ref.y - bird::RADIUS <= pipe_ref.y - HOLE_SIZE);
+                    || bird_ref.y - bird::RADIUS <= pipe_ref.y - hole_size);
                 if !alive {
                     scores[bird_ref.index] = current_score;
                 }
@@ -290,7 +309,7 @@ impl Game {
             if let Some(player) = &mut self.player {
                 let player_bird = &player.bird;
                 let alive = !(player_bird.y + bird::RADIUS >= pipe_ref.y
-                    || player_bird.y - bird::RADIUS <= pipe_ref.y - HOLE_SIZE);
+                    || player_bird.y - bird::RADIUS <= pipe_ref.y - hole_size);
                 if !alive {
                     self.player.take();
                 }

@@ -19,14 +19,21 @@ extern "C" {
 }
 
 async fn run_training(params: GameParams) {
+    let outputs_count = if params.game_type == 0 {
+        1
+    } else {
+        2
+    };
+
     let mut sim = TrainingSimulation::new(700.0, 800.0, params);
     let mut runner: Train<TrainingSimulation, f64> = Train::new(&mut sim);
+
     runner
         .inputs(3)
-        .outputs(1)
+        .outputs(outputs_count)
         .iterations(5000)
-        .delta_threshold(1.0)
-        .formula(0.4, 0.4, 0.8)
+        .delta_threshold(2.)
+        .formula(0.8, 0.8, 0.3)
         .max_layers(10)
         .max_per_layers(10)
         .max_individuals(500)
@@ -62,6 +69,8 @@ impl Clone for GameParams {
 #[wasm_bindgen]
 pub fn start(params: GameParams) {
     set_panic_hook();
-
+    let document = web_sys::window().unwrap().document().unwrap();
+    let start_button = document.get_element_by_id("start").unwrap();
+    start_button.set_attribute("style", "display: none;").unwrap();
     spawn_local(run_training(params));
 }

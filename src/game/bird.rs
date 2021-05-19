@@ -5,16 +5,16 @@ use wasm_bindgen::JsValue;
 pub const RADIUS: f64 = 30.0;
 pub const X: f64 = 45.0;
 
-pub struct Bird {
+pub struct Bird<const GAME_TYPE: i32> {
     pub index: usize,
     pub y: f64,
     color: String,
-    velocity: f64,
+    pub velocity: f64,
     net: Option<NeuralNetwork<f64>>,
 }
 
-impl Bird {
-    pub fn new(index: usize, color: String, net: NeuralNetwork<f64>) -> Bird {
+impl<const GAME_TYPE: i32> Bird<{ GAME_TYPE }> {
+    pub fn new(index: usize, color: String, net: NeuralNetwork<f64>) -> Bird<{ GAME_TYPE }> {
         Bird {
             index,
             color,
@@ -24,7 +24,7 @@ impl Bird {
         }
     }
 
-    pub fn new_without_handler(index: usize, color: String) -> Bird {
+    pub fn new_without_handler(index: usize, color: String) -> Bird<{ GAME_TYPE }> {
         Bird {
             index,
             color,
@@ -40,18 +40,28 @@ impl Bird {
     }
 
     pub fn jump(&mut self) {
-        self.velocity = 10.0;
+        if GAME_TYPE == 0 {
+            self.velocity = 10.0;
+        } else if GAME_TYPE == 1 {
+            self.velocity += 1.0;
+        }
     }
 
     pub fn make_decision(&mut self, inputs: &[f64]) {
         let output = self.net.as_mut().unwrap().compute(inputs);
-        if output[0] >= 0.0 {
-            self.jump();
+        if GAME_TYPE == 0 {
+            if output[0] >= 0.0 {
+                self.jump();
+            }
+        } else if GAME_TYPE == 1 {
+            if output[0] >= output[1] {
+                self.jump();
+            }
         }
     }
 }
 
-impl Render for Bird {
+impl<const GAME_TYPE: i32> Render for Bird<{ GAME_TYPE }> {
     fn render(&self, canvas_ctx: &web_sys::CanvasRenderingContext2d) {
         let black = JsValue::from_str("black");
         let is_player = self.net.is_none();
