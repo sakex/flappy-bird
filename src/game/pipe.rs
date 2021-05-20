@@ -62,19 +62,9 @@ impl<const GAME_TYPE: i32> Render for Pipe<{ GAME_TYPE }> {
         canvas_ctx.fill();
         canvas_ctx.rect(self.x, self.y - h_size - BORDER_WIDTH, WIDTH, -height);
         canvas_ctx.stroke();
-        canvas_ctx.rect(
-            self.x - 5.0,
-            self.y - h_size,
-            WIDTH + 10.0,
-            -BORDER_WIDTH,
-        );
+        canvas_ctx.rect(self.x - 5.0, self.y - h_size, WIDTH + 10.0, -BORDER_WIDTH);
         canvas_ctx.fill();
-        canvas_ctx.rect(
-            self.x - 5.0,
-            self.y - h_size,
-            WIDTH + 10.0,
-            -BORDER_WIDTH,
-        );
+        canvas_ctx.rect(self.x - 5.0, self.y - h_size, WIDTH + 10.0, -BORDER_WIDTH);
         canvas_ctx.stroke();
     }
 }

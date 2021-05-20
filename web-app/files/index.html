@@ -4,29 +4,141 @@
     <meta charset="UTF-8">
     <title>Flappy Bird WASM</title>
     <style>
+        @font-face {
+            font-family: SourceCodePro;
+            src: url(/font.otf);
+        }
+
+        body {
+            background-color: #282c34;
+            font-family: "SourceCodePro";
+        }
+
         #canvas {
             border: 1px solid black;
             background: url("/background");
         }
+
+        h1 {
+            margin-left: 40px;
+            max-width: 530px;
+            color: #ca6568;
+        }
+
+        i {
+            color: #ca6568;
+        }
+
+        p {
+            margin-left: 40px;
+            max-width: 530px;
+            text-align: justify;
+            color: #99a0ab;
+        }
+
+        a {
+            color: #5fade9;
+        }
+
+        #params {
+            background-color: #31363f;
+            max-width: 510px;
+            margin: 40px;
+            padding: 20px 20px 20px 0;
+        }
+
+        #params p {
+            margin-bottom: 30px;
+        }
+
+        #params_title {
+            text-align: center;
+            color: #ca6568;
+            margin-bottom: 40px;
+        }
+
+        button {
+            background-color: #99a0ab;
+            width: 200px;
+            padding: 5px 0;
+            margin-left: calc(50% - 100px - 11px);
+            border-radius: 5px;
+            border: 0;
+            cursor: pointer;
+            transition: 1s;
+        }
+
+        button:hover {
+            background-color: #282c34;
+            color: white;
+        }
+
+        input, select {
+            float: right;
+            width: 150px;
+            padding: 5px;
+            background-color: #31363f;
+            border: 1px solid #99a0ab;
+            color: #99a0ab;
+            border-radius: 4px;
+        }
+
     </style>
 </head>
 <body>
 <h1>
-    Flappy Bird WASM
+    Flappy Bird WASM Neuro Evolution
 </h1>
 <p>
-    <label for="game_type">Game type</label>
-    <select id="game_type">
-        <option value="0">Classic</option>
-        <option value="1">Aerodynamics</option>
-    </select>
+    Thanks for visiting!</p>
+<p>
+    This is an implementation of the famous game <b>Flappy Bird</b>. It is written in Rust and
+    compiled to WebAssembly. <a href="https://github.com/sakex/flappy-bird">Click here to see the source code.</a>
 </p>
 <p>
-    <label for="player">Give me the black bird for next generation</label><input id="player" type="checkbox"/>
+    You can visualize AIs trying to learn the game. The algorithm is based on the papers
+    <a href="http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf">Evolving Neural Networks through
+        Augmenting Topologies</a> and <a href="https://arxiv.org/abs/1412.3555">Gated Recurrent Units (GRU).</a>
 </p>
 <p>
-    <button id="start">Start</button>
+    You can also play by selecting <i>Give me the black bird for next generation</i>. You can always decide to opt in or
+    out.
 </p>
+<p>
+    The goal of this demo is to showcase my library <a href="https://crates.io/crates/neat-gru/0.6.3">neat-gru-rust</a>
+</p>
+<p>
+    There are two version of the game, <i>classic</i> and <i>aerodynamics</i>. The difference is that in <i>classic</i>
+    mode, the fall velocity is reset at every jump. Whereas in <i>aerodynamics</i>, jumping only increments the current
+    falling speed; making it much harder to control.
+</p>
+
+<section id="params">
+    <h3 id="params_title">
+        Game Parameters
+    </h3>
+    <p>
+        <label for="game_type">Game type</label>
+        <select id="game_type">
+            <option value="0">Classic</option>
+            <option value="1">Aerodynamics</option>
+        </select>
+    </p>
+    <p>
+        <label for="birds_count">Birds count</label><input id="birds_count" type="number" value="500"/>
+    </p>
+    <p>
+        <label for="render_count">Render count (for performance)</label><input id="render_count" type="number"
+                                                                               value="250"/>
+    </p>
+    <p>
+        <label for="player">Give me the black bird for next generation</label>
+        <input id="player" type="checkbox" style="width: 1em"/>
+    </p>
+    <p>
+        <button id="start">Start</button>
+    </p>
+</section>
 
 <canvas id="canvas" width="700px" height="800px"></canvas>
 <script type="module">
@@ -38,10 +150,12 @@
         const button = document.querySelector("#start");
 
         button.addEventListener("click", () => {
+            window.scrollTo(0, document.body.scrollHeight);
             const gameType = parseInt(document.querySelector("#game_type").value);
-            const params = new GameParams(gameType);
+            const birdsCount = parseInt(document.querySelector("#birds_count").value);
+            const renderCount = parseInt(document.querySelector("#render_count").value);
 
-            console.log(params.game_type);
+            const params = new GameParams(gameType, birdsCount, renderCount);
 
             start(params);
         });

@@ -20,6 +20,8 @@ struct PlayerHandler<const GAME_TYPE: i32> {
     space_pressed: Arc<Mutex<bool>>,
     func_keydown: Closure<dyn FnMut(web_sys::KeyboardEvent)>,
     func_keyup: Closure<dyn FnMut(web_sys::KeyboardEvent)>,
+    func_mousedown: Closure<dyn FnMut(web_sys::KeyboardEvent)>,
+    func_mouseup: Closure<dyn FnMut(web_sys::KeyboardEvent)>,
 }
 
 impl<const GAME_TYPE: i32> PlayerHandler<{ GAME_TYPE }> {
@@ -27,6 +29,8 @@ impl<const GAME_TYPE: i32> PlayerHandler<{ GAME_TYPE }> {
         let space_pressed = Arc::new(Mutex::new(false));
         let pressed_clone = space_pressed.clone();
         let pressed_clone2 = space_pressed.clone();
+        let pressed_clone3 = space_pressed.clone();
+        let pressed_clone4 = space_pressed.clone();
 
         let func_keydown = Closure::wrap(Box::new(move |js_event: web_sys::KeyboardEvent| {
             if js_event.key_code() == 32 {
@@ -40,6 +44,14 @@ impl<const GAME_TYPE: i32> PlayerHandler<{ GAME_TYPE }> {
             }
         }) as Box<dyn FnMut(web_sys::KeyboardEvent)>);
 
+        let func_mousedown = Closure::wrap(Box::new(move |_js_event: web_sys::KeyboardEvent| {
+            *pressed_clone3.lock().unwrap() = true;
+        }) as Box<dyn FnMut(web_sys::KeyboardEvent)>);
+
+        let func_mouseup = Closure::wrap(Box::new(move |_js_event: web_sys::KeyboardEvent| {
+            *pressed_clone4.lock().unwrap() = false;
+        }) as Box<dyn FnMut(web_sys::KeyboardEvent)>);
+
         let document = web_sys::window().unwrap().document().unwrap();
 
         document
@@ -50,10 +62,20 @@ impl<const GAME_TYPE: i32> PlayerHandler<{ GAME_TYPE }> {
             .add_event_listener_with_callback("keyup", func_keyup.as_ref().unchecked_ref())
             .unwrap();
 
+        document
+            .add_event_listener_with_callback("mousedown", func_mousedown.as_ref().unchecked_ref())
+            .unwrap();
+
+        document
+            .add_event_listener_with_callback("mouseup", func_mouseup.as_ref().unchecked_ref())
+            .unwrap();
+
         PlayerHandler {
             space_pressed,
             func_keydown,
             func_keyup,
+            func_mousedown,
+            func_mouseup,
             bird: Bird::new_without_handler(usize::MAX, String::from("black")),
         }
     }
@@ -78,9 +100,18 @@ impl<const GAME_TYPE: i32> Drop for PlayerHandler<{ GAME_TYPE }> {
             )
             .unwrap();
         document
+            .remove_event_listener_with_callback("keyup", &self.func_keyup.as_ref().unchecked_ref())
+            .unwrap();
+        document
             .remove_event_listener_with_callback(
-                "keyup",
-                &self.func_keyup.as_ref().unchecked_ref(),
+                "mousedown",
+                &self.func_mousedown.as_ref().unchecked_ref(),
+            )
+            .unwrap();
+        document
+            .remove_event_listener_with_callback(
+                "mouseup",
+                &self.func_mouseup.as_ref().unchecked_ref(),
             )
             .unwrap();
     }
@@ -93,6 +124,7 @@ pub struct Game<const GAME_TYPE: i32> {
     rng: ThreadRng,
     width: f64,
     height: f64,
+    render_count: i32,
     species_count: usize,
     generation: usize,
     ticks: usize,
@@ -110,6 +142,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
     pub fn new(
         width: f64,
         height: f64,
+        render_count: i32,
         species_count: usize,
         generation: usize,
         player: bool,
@@ -125,6 +158,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
         Game {
             width,
             height,
+            render_count,
             species_count,
             rng,
             canvas_ctx,
@@ -142,6 +176,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
     pub async fn run_game(
         width: f64,
         height: f64,
+        render_count: i32,
         species_count: usize,
         generation: usize,
         networks: Vec<NeuralNetwork<f64>>,
@@ -174,6 +209,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
             Arc::new(Mutex::new(Game::<GAME_TYPE>::new(
                 width,
                 height,
+                render_count,
                 species_count,
                 generation,
                 player_checked,
@@ -196,6 +232,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
                 let game_obj = &mut *game.lock().unwrap();
                 if !game_obj.started {
                     if !game_obj.check_started() {
+                        game_obj.render_waiting();
                         request_animation_frame(f.lock().unwrap().as_ref().unwrap());
                         return;
                     }
@@ -230,12 +267,13 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
     fn add_pipe(&mut self) {
         let y = self.height
             - self
-            .rng
-            .gen_range(self.height * 0.1..(self.height * 0.9 - pipe::hole_size(GAME_TYPE)));
+                .rng
+                .gen_range(self.height * 0.1..(self.height * 0.9 - pipe::hole_size(GAME_TYPE)));
 
         match self.pipes.last() {
             None => {
-                self.pipes.push(Pipe::new(self.width, 0.25 * self.height + 0.5 * y));
+                self.pipes
+                    .push(Pipe::new(self.width, 0.25 * self.height + 0.5 * y));
             }
             Some(Pipe { x, .. }) => {
                 let x = *x;
@@ -271,10 +309,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
             &self.pipes[1]
         };
 
-
-        let mut inputs = [(first_pipe.x * 2.0 - self.width) / self.width,
-            0.,
-            0.];
+        let mut inputs = [(first_pipe.x * 2.0 - self.width) / self.width, 0., 0.];
 
         for bird in &mut self.birds {
             inputs[1] = (bird.y - first_pipe.hole) / self.height;
@@ -369,10 +404,26 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
         }
     }
 
+    pub fn render_waiting(&self) {
+        let canvas_ctx = &*self.canvas_ctx.lock().unwrap();
+        canvas_ctx.set_fill_style(&JsValue::from_str("rgba(50, 50, 50, 0.01)"));
+        canvas_ctx.rect(0.0, 0.0, self.width, self.height);
+        canvas_ctx.fill();
+        canvas_ctx.set_font("20px Arial");
+        canvas_ctx.set_fill_style(&JsValue::from_str("white"));
+        canvas_ctx
+            .fill_text(
+                "Press space or click to play",
+                self.width / 2.0 - 140.0,
+                self.height / 2.0 + 15.0,
+            )
+            .unwrap();
+    }
+
     pub fn render(&self) {
         let canvas_ctx = &*self.canvas_ctx.lock().unwrap();
         canvas_ctx.clear_rect(0.0, 0.0, self.width, self.height);
-        for bird in self.birds.iter().take(250) {
+        for bird in self.birds.iter().take(self.render_count as usize) {
             bird.render(&canvas_ctx);
         }
         if let Some(player) = &self.player {

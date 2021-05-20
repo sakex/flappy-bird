@@ -14,6 +14,12 @@ async fn background() -> Result<NamedFile> {
     Ok(NamedFile::open(path)?)
 }
 
+#[get("/font.otf")]
+async fn font() -> Result<NamedFile> {
+    let path: PathBuf = "./files/source-code-regular.otf".parse()?;
+    Ok(NamedFile::open(path)?)
+}
+
 #[get("/wasm/{name}")]
 async fn serve_wasm(web::Path(name): web::Path<String>) -> Result<NamedFile> {
     let path: PathBuf = format!("./pkg/{}", name).parse()?;
@@ -31,6 +37,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(|| App::new().service(index)
         .service(serve_wasm)
         .service(serve_wasm_snippet)
+        .service(font)
         .service(background))
         .bind("127.0.0.1:8080")?
         .run()
