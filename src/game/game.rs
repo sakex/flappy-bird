@@ -118,7 +118,7 @@ impl<const GAME_TYPE: i32> Drop for PlayerHandler<{ GAME_TYPE }> {
 }
 
 pub struct Game<const GAME_TYPE: i32> {
-    pipes: Vec<Pipe<{ GAME_TYPE }>>,
+    pipes: Vec<Pipe>,
     birds: Vec<Bird<{ GAME_TYPE }>>,
     pub scores: Vec<f64>,
     rng: ThreadRng,
@@ -127,6 +127,7 @@ pub struct Game<const GAME_TYPE: i32> {
     render_count: i32,
     species_count: usize,
     generation: usize,
+    hole_size: f64,
     ticks: usize,
     current_score: f64,
     pub started: bool,
@@ -145,9 +146,11 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
         render_count: i32,
         species_count: usize,
         generation: usize,
+        hole_size: i32,
         player: bool,
         canvas_ctx: Arc<Mutex<web_sys::CanvasRenderingContext2d>>,
     ) -> Game<{ GAME_TYPE }> {
+        let hole_size = hole_size as f64;
         let (space_pressed, started) = if player {
             (Some(PlayerHandler::new()), false)
         } else {
@@ -163,6 +166,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
             rng,
             canvas_ctx,
             generation,
+            hole_size,
             player: space_pressed,
             started,
             pipes: Vec::new(),
@@ -179,6 +183,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
         render_count: i32,
         species_count: usize,
         generation: usize,
+        hole_size: i32,
         networks: Vec<NeuralNetwork<f64>>,
     ) -> Arc<Mutex<Game<{ GAME_TYPE }>>> {
         let game = {
@@ -212,6 +217,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
                 render_count,
                 species_count,
                 generation,
+                hole_size,
                 player_checked,
                 context,
             )))
@@ -268,16 +274,16 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
         let y = self.height
             - self
                 .rng
-                .gen_range(self.height * 0.1..(self.height * 0.9 - pipe::hole_size(GAME_TYPE)));
+                .gen_range(self.height * 0.0..(self.height - self.hole_size));
 
         match self.pipes.last() {
             None => {
                 self.pipes
-                    .push(Pipe::new(self.width, 0.25 * self.height + 0.5 * y));
+                    .push(Pipe::new(self.width, 0.25 * self.height + 0.5 * y, self.hole_size));
             }
             Some(Pipe { x, .. }) => {
                 let x = *x;
-                self.pipes.push(Pipe::new(x + 500.0, y));
+                self.pipes.push(Pipe::new(x + 500.0, y, self.hole_size));
             }
         }
     }
@@ -330,7 +336,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
         let current_score = self.ticks as f64;
 
         let scores = &mut self.scores;
-        let hole_size = pipe::hole_size(GAME_TYPE);
+        let hole_size = self.hole_size;
         if overlap_x {
             self.birds.retain(|bird_ref| {
                 let alive = !(bird_ref.y + bird::RADIUS >= pipe_ref.y

@@ -51,18 +51,19 @@ impl GameAsync<f64> for TrainingSimulation {
         let height = self.height;
         let species_count = self.species_count;
         let render_count = self.params.render_count;
+        let hole_size = self.params.hole_size;
         let networks = self.networks.take().unwrap();
         match self.params.game_type {
             0 => {
                 let game =
-                    Game::<0>::run_game(width, height, render_count, species_count, generation, networks).await;
+                    Game::<0>::run_game(width, height, render_count, species_count, generation, hole_size, networks).await;
                 let lock = &*game.lock().unwrap();
                 let scores = lock.scores.clone();
                 scores
             }
             1 => {
                 let game =
-                    Game::<1>::run_game(width, height, render_count, species_count, generation, networks).await;
+                    Game::<1>::run_game(width, height, render_count, species_count, generation, hole_size, networks).await;
                 let lock = &*game.lock().unwrap();
                 let scores = lock.scores.clone();
                 scores

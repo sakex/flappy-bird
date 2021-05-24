@@ -29,11 +29,22 @@
             color: #ca6568;
         }
 
-        p {
+        p, ul {
             margin-left: 40px;
             max-width: 530px;
             text-align: justify;
             color: #99a0ab;
+        }
+
+        ul {
+        }
+
+        li {
+            color: #ca6568;
+            background-color: #31363f;
+            margin-bottom: 20px;
+            max-width: 470px;
+            padding: 10px;
         }
 
         a {
@@ -105,13 +116,22 @@
     out.
 </p>
 <p>
-    The goal of this demo is to showcase my library <a href="https://crates.io/crates/neat-gru/0.6.3">neat-gru-rust</a>
+    The goal of this demo is to showcase my library <a href="https://crates.io/crates/neat-gru/0.6.4">neat-gru-rust</a>
 </p>
 <p>
     There are two version of the game, <i>classic</i> and <i>aerodynamics</i>. The difference is that in <i>classic</i>
     mode, the fall velocity is reset at every jump. Whereas in <i>aerodynamics</i>, jumping only increments the current
     falling speed; making it much harder to control.
 </p>
+<p>
+    The inputs passed are:
+</p>
+<ul>
+    <li>(first_pipe.x * 2.0 - width) / width</li>
+    <li>(bird.y - first_pipe.hole) / height</li>
+    <li>0.01 * bird.velocity</li>
+</ul>
+
 
 <section id="params">
     <h3 id="params_title">
@@ -130,6 +150,9 @@
     <p>
         <label for="render_count">Render count (for performance)</label><input id="render_count" type="number"
                                                                                value="250"/>
+    </p>
+    <p>
+        <label for="hole_size">Hole size</label><input id="hole_size" type="number" value="200" max="700" min="80"/>
     </p>
     <p>
         <label for="player">Give me the black bird for next generation</label>
@@ -154,8 +177,9 @@
             const gameType = parseInt(document.querySelector("#game_type").value);
             const birdsCount = parseInt(document.querySelector("#birds_count").value);
             const renderCount = parseInt(document.querySelector("#render_count").value);
+            const holeSize = parseInt(document.querySelector("#hole_size").value);
 
-            const params = new GameParams(gameType, birdsCount, renderCount);
+            const params = new GameParams(gameType, birdsCount, renderCount, holeSize);
 
             start(params);
         });

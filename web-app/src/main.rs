@@ -27,19 +27,24 @@ async fn serve_wasm(web::Path(name): web::Path<String>) -> Result<NamedFile> {
 }
 
 #[get("/wasm/snippets/{snippet_name}/{name}")]
-async fn serve_wasm_snippet(web::Path((snippet_name, name)): web::Path<(String, String)>) -> Result<NamedFile> {
+async fn serve_wasm_snippet(
+    web::Path((snippet_name, name)): web::Path<(String, String)>,
+) -> Result<NamedFile> {
     let path: PathBuf = format!("./pkg/snippets/{}/{}", snippet_name, name).parse()?;
     Ok(NamedFile::open(path)?)
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    HttpServer::new(|| App::new().service(index)
-        .service(serve_wasm)
-        .service(serve_wasm_snippet)
-        .service(font)
-        .service(background))
-        .bind("127.0.0.1:8080")?
-        .run()
-        .await
+    HttpServer::new(|| {
+        App::new()
+            .service(index)
+            .service(serve_wasm)
+            .service(serve_wasm_snippet)
+            .service(font)
+            .service(background)
+    })
+    .bind("127.0.0.1:8080")?
+    .run()
+    .await
 }

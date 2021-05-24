@@ -47,16 +47,18 @@ pub struct GameParams {
     pub game_type: i32,
     pub birds_count: i32,
     pub render_count: i32,
+    pub hole_size: i32,
 }
 
 #[wasm_bindgen]
 impl GameParams {
     #[wasm_bindgen(constructor)]
-    pub fn new(game_type: i32, birds_count: i32, render_count: i32) -> GameParams {
+    pub fn new(game_type: i32, birds_count: i32, render_count: i32, hole_size: i32) -> GameParams {
         GameParams {
             game_type,
             birds_count,
             render_count,
+            hole_size,
         }
     }
 }
@@ -67,6 +69,7 @@ impl Clone for GameParams {
             game_type: self.game_type,
             birds_count: self.birds_count,
             render_count: self.render_count,
+            hole_size: self.hole_size
         }
     }
 }
