@@ -11,6 +11,8 @@ use wasm_bindgen::__rt::std::sync::Mutex;
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::{JsCast, JsValue};
 
+const SPACEBAR: u32 = 32;
+
 pub trait Render {
     fn render(&self, canvas_ctx: &web_sys::CanvasRenderingContext2d);
 }
@@ -23,6 +25,21 @@ struct PlayerHandler<const GAME_TYPE: i32> {
     func_mousedown: Closure<dyn FnMut(web_sys::KeyboardEvent)>,
     func_mouseup: Closure<dyn FnMut(web_sys::KeyboardEvent)>,
 }
+/// Macro used for handling inputs
+macro_rules! handle_input{
+    ($space_pressed_clone: expr, $key: expr, $bool: expr) => {
+        Closure::wrap(Box::new(move |js_event: web_sys::KeyboardEvent| {
+            if js_event.key_code() == $key {
+                *$space_pressed_clone.lock().unwrap() = $bool;
+            }
+        }) as Box<dyn FnMut(web_sys::KeyboardEvent)>)
+    };
+    ($space_pressed_clone: expr, $bool: expr) => {
+        Closure::wrap(Box::new(move |_js_event: web_sys::KeyboardEvent| {
+            *$space_pressed_clone.lock().unwrap() = $bool;
+        }) as Box<dyn FnMut(web_sys::KeyboardEvent)>)
+    }
+}
 
 impl<const GAME_TYPE: i32> PlayerHandler<{ GAME_TYPE }> {
     pub fn new() -> PlayerHandler<{ GAME_TYPE }> {
@@ -32,25 +49,13 @@ impl<const GAME_TYPE: i32> PlayerHandler<{ GAME_TYPE }> {
         let pressed_clone3 = space_pressed.clone();
         let pressed_clone4 = space_pressed.clone();
 
-        let func_keydown = Closure::wrap(Box::new(move |js_event: web_sys::KeyboardEvent| {
-            if js_event.key_code() == 32 {
-                *pressed_clone.lock().unwrap() = true;
-            }
-        }) as Box<dyn FnMut(web_sys::KeyboardEvent)>);
+        let func_keydown = handle_input!(pressed_clone, SPACEBAR, true);
 
-        let func_keyup = Closure::wrap(Box::new(move |js_event: web_sys::KeyboardEvent| {
-            if js_event.key_code() == 32 {
-                *pressed_clone2.lock().unwrap() = false;
-            }
-        }) as Box<dyn FnMut(web_sys::KeyboardEvent)>);
+        let func_keyup = handle_input!(pressed_clone2, SPACEBAR, false);
 
-        let func_mousedown = Closure::wrap(Box::new(move |_js_event: web_sys::KeyboardEvent| {
-            *pressed_clone3.lock().unwrap() = true;
-        }) as Box<dyn FnMut(web_sys::KeyboardEvent)>);
+        let func_mousedown = handle_input!(pressed_clone3, true);
 
-        let func_mouseup = Closure::wrap(Box::new(move |_js_event: web_sys::KeyboardEvent| {
-            *pressed_clone4.lock().unwrap() = false;
-        }) as Box<dyn FnMut(web_sys::KeyboardEvent)>);
+        let func_mouseup = handle_input!(pressed_clone4, false);
 
         let document = web_sys::window().unwrap().document().unwrap();
 
