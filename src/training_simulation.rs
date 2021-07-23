@@ -55,18 +55,32 @@ impl GameAsync<f64> for TrainingSimulation {
         let networks = self.networks.take().unwrap();
         match self.params.game_type {
             0 => {
-                let game =
-                    Game::<0>::run_game(width, height, render_count, species_count, generation, hole_size, networks).await;
+                let game = Game::<0>::run_game(
+                    width,
+                    height,
+                    render_count,
+                    species_count,
+                    generation,
+                    hole_size,
+                    networks,
+                )
+                .await;
                 let lock = &*game.lock().unwrap();
-                let scores = lock.scores.clone();
-                scores
+                lock.scores.clone()
             }
             1 => {
-                let game =
-                    Game::<1>::run_game(width, height, render_count, species_count, generation, hole_size, networks).await;
+                let game = Game::<1>::run_game(
+                    width,
+                    height,
+                    render_count,
+                    species_count,
+                    generation,
+                    hole_size,
+                    networks,
+                )
+                .await;
                 let lock = &*game.lock().unwrap();
-                let scores = lock.scores.clone();
-                scores
+                lock.scores.clone()
             }
             _ => {
                 panic!("Invalid game type")

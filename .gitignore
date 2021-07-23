@@ -3,4 +3,6 @@
 Cargo.lock
 bin/
 web-app/pkg/
+web-app/target/
 wasm-pack.log
+.vscode/
