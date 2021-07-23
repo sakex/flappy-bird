@@ -9,7 +9,7 @@ pub struct Pipe {
     pub x: f64,
     pub y: f64,
     pub hole: f64,
-    hole_size: f64
+    hole_size: f64,
 }
 
 impl Pipe {

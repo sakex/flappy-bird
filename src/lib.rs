@@ -69,7 +69,7 @@ impl Clone for GameParams {
             game_type: self.game_type,
             birds_count: self.birds_count,
             render_count: self.render_count,
-            hole_size: self.hole_size
+            hole_size: self.hole_size,
         }
     }
 }

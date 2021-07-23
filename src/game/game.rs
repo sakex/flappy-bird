@@ -96,22 +96,22 @@ impl<const GAME_TYPE: i32> Drop for PlayerHandler<{ GAME_TYPE }> {
         document
             .remove_event_listener_with_callback(
                 "keydown",
-                &self.func_keydown.as_ref().unchecked_ref(),
+                self.func_keydown.as_ref().unchecked_ref(),
             )
             .unwrap();
         document
-            .remove_event_listener_with_callback("keyup", &self.func_keyup.as_ref().unchecked_ref())
+            .remove_event_listener_with_callback("keyup", self.func_keyup.as_ref().unchecked_ref())
             .unwrap();
         document
             .remove_event_listener_with_callback(
                 "mousedown",
-                &self.func_mousedown.as_ref().unchecked_ref(),
+                self.func_mousedown.as_ref().unchecked_ref(),
             )
             .unwrap();
         document
             .remove_event_listener_with_callback(
                 "mouseup",
-                &self.func_mouseup.as_ref().unchecked_ref(),
+                self.func_mouseup.as_ref().unchecked_ref(),
             )
             .unwrap();
     }
@@ -236,12 +236,10 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
 
             *g.lock().unwrap() = Some(Closure::wrap(Box::new(move || {
                 let game_obj = &mut *game.lock().unwrap();
-                if !game_obj.started {
-                    if !game_obj.check_started() {
-                        game_obj.render_waiting();
-                        request_animation_frame(f.lock().unwrap().as_ref().unwrap());
-                        return;
-                    }
+                if !game_obj.started && !game_obj.check_started() {
+                    game_obj.render_waiting();
+                    request_animation_frame(f.lock().unwrap().as_ref().unwrap());
+                    return;
                 }
                 game_obj.make_decisions();
                 game_obj.game_logic();
@@ -278,8 +276,11 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
 
         match self.pipes.last() {
             None => {
-                self.pipes
-                    .push(Pipe::new(self.width, 0.25 * self.height + 0.5 * y, self.hole_size));
+                self.pipes.push(Pipe::new(
+                    self.width,
+                    0.25 * self.height + 0.5 * y,
+                    self.hole_size,
+                ));
             }
             Some(Pipe { x, .. }) => {
                 let x = *x;
@@ -430,14 +431,14 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
         let canvas_ctx = &*self.canvas_ctx.lock().unwrap();
         canvas_ctx.clear_rect(0.0, 0.0, self.width, self.height);
         for bird in self.birds.iter().take(self.render_count as usize) {
-            bird.render(&canvas_ctx);
+            bird.render(canvas_ctx);
         }
         if let Some(player) = &self.player {
             let player_bird = &player.bird;
-            player_bird.render(&canvas_ctx);
+            player_bird.render(canvas_ctx);
         }
         for pipe in &self.pipes {
-            pipe.render(&canvas_ctx);
+            pipe.render(canvas_ctx);
         }
         canvas_ctx.set_font("30px Arial");
         canvas_ctx.set_fill_style(&JsValue::from_str("black"));

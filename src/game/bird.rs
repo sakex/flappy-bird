@@ -53,10 +53,8 @@ impl<const GAME_TYPE: i32> Bird<{ GAME_TYPE }> {
             if output[0] >= 0.0 {
                 self.jump();
             }
-        } else if GAME_TYPE == 1 {
-            if output[0] >= output[1] {
-                self.jump();
-            }
+        } else if GAME_TYPE == 1 && output[0] >= output[1] {
+            self.jump();
         }
     }
 }
