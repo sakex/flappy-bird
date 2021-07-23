@@ -26,7 +26,7 @@ struct PlayerHandler<const GAME_TYPE: i32> {
     func_mouseup: Closure<dyn FnMut(web_sys::KeyboardEvent)>,
 }
 /// Macro used for handling inputs
-macro_rules! handle_input{
+macro_rules! handle_input {
     ($space_pressed_clone: expr, $key: expr, $bool: expr) => {
         Closure::wrap(Box::new(move |js_event: web_sys::KeyboardEvent| {
             if js_event.key_code() == $key {
@@ -38,7 +38,7 @@ macro_rules! handle_input{
         Closure::wrap(Box::new(move |_js_event: web_sys::KeyboardEvent| {
             *$space_pressed_clone.lock().unwrap() = $bool;
         }) as Box<dyn FnMut(web_sys::KeyboardEvent)>)
-    }
+    };
 }
 
 impl<const GAME_TYPE: i32> PlayerHandler<{ GAME_TYPE }> {
@@ -49,6 +49,7 @@ impl<const GAME_TYPE: i32> PlayerHandler<{ GAME_TYPE }> {
         let pressed_clone3 = space_pressed.clone();
         let pressed_clone4 = space_pressed.clone();
 
+        // Key Handling
         let func_keydown = handle_input!(pressed_clone, SPACEBAR, true);
 
         let func_keyup = handle_input!(pressed_clone2, SPACEBAR, false);
@@ -294,9 +295,14 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
         }
     }
 
+    fn get_speed(&self) -> f64{
+        4.0 + (self.ticks as f64) * 0.0005
+    }
+
     fn move_pipes(&mut self) {
+        let speed = self.get_speed();
         for pipe in &mut self.pipes {
-            pipe.move_left();
+            pipe.move_left(speed);
         }
         if self.pipes[0].x <= -pipe::WIDTH {
             self.pipes.remove(0);
@@ -321,7 +327,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
             &self.pipes[1]
         };
 
-        let mut inputs = [(first_pipe.x * 2.0 - self.width) / self.width, 0., 0.];
+        let mut inputs = [(first_pipe.x * 2.0 - self.width) / self.width, 0., 0., self.get_speed()];
 
         for bird in &mut self.birds {
             inputs[1] = (bird.y - first_pipe.hole) / self.height;
