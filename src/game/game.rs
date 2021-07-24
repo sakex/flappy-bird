@@ -315,8 +315,9 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
     /// Returns the speed increase. 0.0 if speed increase is not activated
     fn get_speed_increase(&self) -> f64{
         let mut result = 0.0;
+        let tick = self.ticks as f64;
         if self.speed{
-            result+=((self.ticks as f64) * 0.02).tanh() * 2.5;
+            result+=(tick * 2.0)/ tick+10.0;
         }
         result
     }
