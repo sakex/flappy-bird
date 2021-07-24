@@ -21,9 +21,10 @@ impl Pipe {
             hole: y - hole_size / 2.,
         }
     }
-
+    
+    /// Moves the pipe left at a given speed
     pub fn move_left(&mut self, speed: f64) {
-        self.x -= 1.0 * speed;
+        self.x -= speed;
     }
 }
 
