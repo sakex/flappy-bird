@@ -47,7 +47,7 @@ impl<const GAME_TYPE: i32> Bird<{ GAME_TYPE }> {
         }
     }
 
-    /// Computes the output of the agent
+    /// Computes the output of the agent which then takes an action
     pub fn make_decision(&mut self, inputs: &[f64]) {
         let output = self.net.as_mut().unwrap().compute(inputs);
         // We can use the very useful Rust Pattern matching here
