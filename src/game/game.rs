@@ -317,7 +317,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
         let mut result = 0.0;
         let tick = self.ticks as f64;
         if self.speed{
-            result+=(tick * 2.0)/ tick+10.0;
+            result+=((self.ticks as f64) * 0.002).tanh() * 2.5;
         }
         result
     }
@@ -350,7 +350,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
             &self.pipes[1]
         };
 
-        let mut inputs = [(first_pipe.x * 2.0 - self.width) / self.width, 0., 0., self.get_speed_increase()*0.5 - 1.0];
+        let mut inputs = [(first_pipe.x * 2.0 - self.width) / self.width, 0., 0.];
 
         for bird in &mut self.birds {
             inputs[1] = (bird.y - first_pipe.hole) / self.height;
