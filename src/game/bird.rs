@@ -47,14 +47,14 @@ impl<const GAME_TYPE: i32> Bird<{ GAME_TYPE }> {
         }
     }
 
+    /// Computes the output of the agent
     pub fn make_decision(&mut self, inputs: &[f64]) {
         let output = self.net.as_mut().unwrap().compute(inputs);
-        if GAME_TYPE == 0 {
-            if output[0] >= 0.0 {
-                self.jump();
-            }
-        } else if GAME_TYPE == 1 && output[0] >= output[1] {
-            self.jump();
+        // We can use the very useful Rust Pattern matching here
+        match GAME_TYPE{
+            0 if output[0]>=0.0 => self.jump(),
+            1 if output[0]>=0.0 => self.jump(),
+            _ => panic!("Invalid Game type")
         }
     }
 }
