@@ -54,8 +54,8 @@ impl<const GAME_TYPE: i32> Bird<{ GAME_TYPE }> {
         match GAME_TYPE{
             0 if output[0]>=0.0 => self.jump(),
             1 if output[0]>=0.0 => self.jump(),
-            _ => panic!("Invalid Game type")
-        }
+            _ => return (),
+        };
     }
 }
 
