@@ -139,6 +139,7 @@ pub struct Game<const GAME_TYPE: i32> {
     pub started: bool,
     player: Option<PlayerHandler<{ GAME_TYPE }>>,
     canvas_ctx: Arc<Mutex<web_sys::CanvasRenderingContext2d>>,
+    speed: bool,
 }
 
 unsafe impl<const GAME_TYPE: i32> Send for Game<{ GAME_TYPE }> {}
@@ -155,6 +156,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
         hole_size: i32,
         player: bool,
         canvas_ctx: Arc<Mutex<web_sys::CanvasRenderingContext2d>>,
+        speed: bool,
     ) -> Game<{ GAME_TYPE }> {
         let hole_size = hole_size as f64;
         let (space_pressed, started) = if player {
@@ -180,6 +182,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
             scores: Vec::new(),
             current_score: 0.0,
             ticks: 0,
+            speed,
         }
     }
 
@@ -194,6 +197,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
     ) -> Arc<Mutex<Game<{ GAME_TYPE }>>> {
         let game = {
             let document = web_sys::window().unwrap().document().unwrap();
+            // Player Checkbox
             let player_checkbox = document.get_element_by_id("player").unwrap();
             let player_checkbox = player_checkbox
                 .dyn_into::<web_sys::HtmlInputElement>()
@@ -201,6 +205,12 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
                 .unwrap();
             let player_checked = player_checkbox.checked();
 
+            // Speed Checkbox
+            let speed_checkbox = document.get_element_by_id("speed").unwrap();
+            let speed_checkbox = speed_checkbox.dyn_into::<web_sys::HtmlInputElement>()
+            .map_err(|_| ())
+            .unwrap();
+            let speed_check = speed_checkbox.checked();
             let canvas = document.get_element_by_id("canvas").unwrap();
 
             let canvas: Arc<web_sys::HtmlCanvasElement> = Arc::new(
@@ -226,6 +236,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
                 hole_size,
                 player_checked,
                 context,
+                speed_check,
             )))
         };
         let game_cp = game.clone();
@@ -296,7 +307,18 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
     }
 
     fn get_speed(&self) -> f64{
-        4.0 + (self.ticks as f64) * 0.0005
+        let mut result = 4.0;
+        result += self.get_speed_increase();
+        result
+    }
+
+    /// Returns the speed increase. 0.0 if speed increase is not activated
+    fn get_speed_increase(&self) -> f64{
+        let mut result = 0.0;
+        if self.speed{
+            result+=((self.ticks as f64) * 0.02).tanh() * 2.5;
+        }
+        result
     }
 
     fn move_pipes(&mut self) {
@@ -327,7 +349,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
             &self.pipes[1]
         };
 
-        let mut inputs = [(first_pipe.x * 2.0 - self.width) / self.width, 0., 0., self.get_speed()];
+        let mut inputs = [(first_pipe.x * 2.0 - self.width) / self.width, 0., 0., self.get_speed_increase() - 1.0];
 
         for bird in &mut self.birds {
             inputs[1] = (bird.y - first_pipe.hole) / self.height;
