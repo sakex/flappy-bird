@@ -350,7 +350,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
             &self.pipes[1]
         };
 
-        let mut inputs = [(first_pipe.x * 2.0 - self.width) / self.width, 0., 0., self.get_speed_increase() - 1.0];
+        let mut inputs = [(first_pipe.x * 2.0 - self.width) / self.width, 0., 0., self.get_speed_increase()*0.5 - 1.0];
 
         for bird in &mut self.birds {
             inputs[1] = (bird.y - first_pipe.hole) / self.height;
