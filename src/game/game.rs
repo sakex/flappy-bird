@@ -17,6 +17,16 @@ pub trait Render {
     fn render(&self, canvas_ctx: &web_sys::CanvasRenderingContext2d);
 }
 
+/// Get the next pipe
+macro_rules! get_first_pipe {
+    ($self: expr) => {
+        if $self.pipes[0].x + pipe::WIDTH >= bird::X - bird::RADIUS {
+            &$self.pipes[0]
+        } else {
+            &$self.pipes[1]
+        }
+    };
+}
 struct PlayerHandler<const GAME_TYPE: i32> {
     bird: Bird<{ GAME_TYPE }>,
     space_pressed: Arc<Mutex<bool>>,
@@ -321,6 +331,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
         result
     }
 
+    /// Moves the pipes to the left
     fn move_pipes(&mut self) {
         let speed = self.get_speed();
         for pipe in &mut self.pipes {
@@ -333,6 +344,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
         }
     }
 
+    /// Applies "gravity" to every bird
     fn apply_birds_velocity(&mut self) {
         for bird in &mut self.birds {
             bird.y_velocity();
@@ -343,11 +355,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
     }
 
     pub fn make_decisions(&mut self) {
-        let first_pipe = if self.pipes[0].x + pipe::WIDTH >= bird::X - bird::RADIUS {
-            &self.pipes[0]
-        } else {
-            &self.pipes[1]
-        };
+        let first_pipe = get_first_pipe!(self);
 
         let mut inputs = [(first_pipe.x * 2.0 - self.width) / self.width, 0., 0.];
 
