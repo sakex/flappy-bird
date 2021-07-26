@@ -17,6 +17,29 @@ pub trait Render {
     fn render(&self, canvas_ctx: &web_sys::CanvasRenderingContext2d);
 }
 
+/// Get the next pipe
+macro_rules! get_first_pipe {
+    ($self: expr) => {
+        if $self.pipes[0].x + pipe::WIDTH >= bird::X - bird::RADIUS {
+            &$self.pipes[0]
+        } else {
+            &$self.pipes[1]
+        }
+    };
+}
+
+/// Get the HtmlInputElement
+macro_rules! get_html_input_element {
+    ($document: expr, $element_name: expr) =>{
+        $document
+            .get_element_by_id($element_name)
+            .unwrap()
+            .dyn_into::<web_sys::HtmlInputElement>()
+            .map_err(|_| ())
+            .unwrap();
+    }
+}
+
 struct PlayerHandler<const GAME_TYPE: i32> {
     bird: Bird<{ GAME_TYPE }>,
     space_pressed: Arc<Mutex<bool>>,
@@ -26,7 +49,7 @@ struct PlayerHandler<const GAME_TYPE: i32> {
     func_mouseup: Closure<dyn FnMut(web_sys::KeyboardEvent)>,
 }
 /// Macro used for handling inputs
-macro_rules! handle_input{
+macro_rules! handle_input {
     ($space_pressed_clone: expr, $key: expr, $bool: expr) => {
         Closure::wrap(Box::new(move |js_event: web_sys::KeyboardEvent| {
             if js_event.key_code() == $key {
@@ -38,7 +61,7 @@ macro_rules! handle_input{
         Closure::wrap(Box::new(move |_js_event: web_sys::KeyboardEvent| {
             *$space_pressed_clone.lock().unwrap() = $bool;
         }) as Box<dyn FnMut(web_sys::KeyboardEvent)>)
-    }
+    };
 }
 
 impl<const GAME_TYPE: i32> PlayerHandler<{ GAME_TYPE }> {
@@ -49,6 +72,7 @@ impl<const GAME_TYPE: i32> PlayerHandler<{ GAME_TYPE }> {
         let pressed_clone3 = space_pressed.clone();
         let pressed_clone4 = space_pressed.clone();
 
+        // Key Handling
         let func_keydown = handle_input!(pressed_clone, SPACEBAR, true);
 
         let func_keyup = handle_input!(pressed_clone2, SPACEBAR, false);
@@ -138,6 +162,7 @@ pub struct Game<const GAME_TYPE: i32> {
     pub started: bool,
     player: Option<PlayerHandler<{ GAME_TYPE }>>,
     canvas_ctx: Arc<Mutex<web_sys::CanvasRenderingContext2d>>,
+    speed: bool,
 }
 
 unsafe impl<const GAME_TYPE: i32> Send for Game<{ GAME_TYPE }> {}
@@ -154,6 +179,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
         hole_size: i32,
         player: bool,
         canvas_ctx: Arc<Mutex<web_sys::CanvasRenderingContext2d>>,
+        speed: bool,
     ) -> Game<{ GAME_TYPE }> {
         let hole_size = hole_size as f64;
         let (space_pressed, started) = if player {
@@ -179,6 +205,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
             scores: Vec::new(),
             current_score: 0.0,
             ticks: 0,
+            speed,
         }
     }
 
@@ -193,13 +220,13 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
     ) -> Arc<Mutex<Game<{ GAME_TYPE }>>> {
         let game = {
             let document = web_sys::window().unwrap().document().unwrap();
-            let player_checkbox = document.get_element_by_id("player").unwrap();
-            let player_checkbox = player_checkbox
-                .dyn_into::<web_sys::HtmlInputElement>()
-                .map_err(|_| ())
-                .unwrap();
+            // Player Checkbox
+            let player_checkbox = get_html_input_element!(document, "player");
             let player_checked = player_checkbox.checked();
 
+            // Speed Checkbox
+            let speed_checkbox = get_html_input_element!(document, "speed");
+            let speed_check = speed_checkbox.checked();
             let canvas = document.get_element_by_id("canvas").unwrap();
 
             let canvas: Arc<web_sys::HtmlCanvasElement> = Arc::new(
@@ -225,6 +252,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
                 hole_size,
                 player_checked,
                 context,
+                speed_check,
             )))
         };
         let game_cp = game.clone();
@@ -294,9 +322,26 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
         }
     }
 
+    fn get_speed(&self) -> f64 {
+        let mut result = 4.0;
+        result += self.get_speed_increase();
+        result
+    }
+
+    /// Returns the speed increase. 0.0 if speed increase is not activated
+    fn get_speed_increase(&self) -> f64 {
+        let mut result = 0.0;
+        if self.speed {
+            result += ((self.ticks as f64) * 0.002).tanh() * 2.5;
+        }
+        result
+    }
+
+    /// Moves the pipes to the left
     fn move_pipes(&mut self) {
+        let speed = self.get_speed();
         for pipe in &mut self.pipes {
-            pipe.move_left();
+            pipe.move_left(speed);
         }
         if self.pipes[0].x <= -pipe::WIDTH {
             self.pipes.remove(0);
@@ -305,6 +350,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
         }
     }
 
+    /// Applies "gravity" to every bird
     fn apply_birds_velocity(&mut self) {
         for bird in &mut self.birds {
             bird.y_velocity();
@@ -315,11 +361,7 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
     }
 
     pub fn make_decisions(&mut self) {
-        let first_pipe = if self.pipes[0].x + pipe::WIDTH >= bird::X - bird::RADIUS {
-            &self.pipes[0]
-        } else {
-            &self.pipes[1]
-        };
+        let first_pipe = get_first_pipe!(self);
 
         let mut inputs = [(first_pipe.x * 2.0 - self.width) / self.width, 0., 0.];
 

@@ -22,8 +22,9 @@ impl Pipe {
         }
     }
 
-    pub fn move_left(&mut self) {
-        self.x -= 5.0;
+    /// Moves the pipe left at a given speed
+    pub fn move_left(&mut self, speed: f64) {
+        self.x -= speed;
     }
 }
 

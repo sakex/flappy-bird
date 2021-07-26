@@ -24,6 +24,7 @@ impl<const GAME_TYPE: i32> Bird<{ GAME_TYPE }> {
         }
     }
 
+    /// Creates a bird without a nn
     pub fn new_without_handler(index: usize, color: String) -> Bird<{ GAME_TYPE }> {
         Bird {
             index,
@@ -34,6 +35,7 @@ impl<const GAME_TYPE: i32> Bird<{ GAME_TYPE }> {
         }
     }
 
+    /// Makes the bird fall based on it's own velocity
     pub fn y_velocity(&mut self) {
         self.y -= self.velocity;
         self.velocity -= 0.5;
@@ -47,15 +49,15 @@ impl<const GAME_TYPE: i32> Bird<{ GAME_TYPE }> {
         }
     }
 
+    /// Executes a decision based on given input
     pub fn make_decision(&mut self, inputs: &[f64]) {
         let output = self.net.as_mut().unwrap().compute(inputs);
-        if GAME_TYPE == 0 {
-            if output[0] >= 0.0 {
-                self.jump();
-            }
-        } else if GAME_TYPE == 1 && output[0] >= output[1] {
-            self.jump();
-        }
+        // We can use the very useful Rust Pattern matching here
+        match GAME_TYPE {
+            0 if output[0] >= 0.0 => self.jump(),
+            1 if output[0] >= 0.0 => self.jump(),
+            _ => return (),
+        };
     }
 }
 
