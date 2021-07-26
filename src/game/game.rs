@@ -27,6 +27,19 @@ macro_rules! get_first_pipe {
         }
     };
 }
+
+/// Get the HtmlInputElement
+macro_rules! get_html_input_element {
+    ($document: expr, $element_name: expr) =>{
+        $document
+            .get_element_by_id($element_name)
+            .unwrap()
+            .dyn_into::<web_sys::HtmlInputElement>()
+            .map_err(|_| ())
+            .unwrap();
+    }
+}
+
 struct PlayerHandler<const GAME_TYPE: i32> {
     bird: Bird<{ GAME_TYPE }>,
     space_pressed: Arc<Mutex<bool>>,
@@ -208,18 +221,11 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
         let game = {
             let document = web_sys::window().unwrap().document().unwrap();
             // Player Checkbox
-            let player_checkbox = document.get_element_by_id("player").unwrap();
-            let player_checkbox = player_checkbox
-                .dyn_into::<web_sys::HtmlInputElement>()
-                .map_err(|_| ())
-                .unwrap();
+            let player_checkbox = get_html_input_element!(document, "player");
             let player_checked = player_checkbox.checked();
 
             // Speed Checkbox
-            let speed_checkbox = document.get_element_by_id("speed").unwrap();
-            let speed_checkbox = speed_checkbox.dyn_into::<web_sys::HtmlInputElement>()
-            .map_err(|_| ())
-            .unwrap();
+            let speed_checkbox = get_html_input_element!(document, "speed");
             let speed_check = speed_checkbox.checked();
             let canvas = document.get_element_by_id("canvas").unwrap();
 
@@ -316,17 +322,17 @@ impl<const GAME_TYPE: i32> Game<{ GAME_TYPE }> {
         }
     }
 
-    fn get_speed(&self) -> f64{
+    fn get_speed(&self) -> f64 {
         let mut result = 4.0;
         result += self.get_speed_increase();
         result
     }
 
     /// Returns the speed increase. 0.0 if speed increase is not activated
-    fn get_speed_increase(&self) -> f64{
+    fn get_speed_increase(&self) -> f64 {
         let mut result = 0.0;
-        if self.speed{
-            result+=((self.ticks as f64) * 0.002).tanh() * 2.5;
+        if self.speed {
+            result += ((self.ticks as f64) * 0.002).tanh() * 2.5;
         }
         result
     }

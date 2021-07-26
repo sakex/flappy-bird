@@ -53,9 +53,9 @@ impl<const GAME_TYPE: i32> Bird<{ GAME_TYPE }> {
     pub fn make_decision(&mut self, inputs: &[f64]) {
         let output = self.net.as_mut().unwrap().compute(inputs);
         // We can use the very useful Rust Pattern matching here
-        match GAME_TYPE{
-            0 if output[0]>=0.0 => self.jump(),
-            1 if output[0]>=0.0 => self.jump(),
+        match GAME_TYPE {
+            0 if output[0] >= 0.0 => self.jump(),
+            1 if output[0] >= 0.0 => self.jump(),
             _ => return (),
         };
     }
