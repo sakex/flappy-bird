@@ -2,8 +2,8 @@ use crate::game::game::Game;
 use crate::GameParams;
 use async_trait::async_trait;
 use neat_gru::game::GameAsync;
-use neat_gru::neural_network::nn::NeuralNetwork;
-use neat_gru::topology::topology::Topology;
+use neat_gru::neural_network::NeuralNetwork;
+use neat_gru::topology::Topology;
 
 pub struct TrainingSimulation {
     width: f64,

@@ -1,5 +1,5 @@
 use crate::game::game::Render;
-use neat_gru::neural_network::nn::NeuralNetwork;
+use neat_gru::neural_network::NeuralNetwork;
 use wasm_bindgen::JsValue;
 
 pub const RADIUS: f64 = 30.0;

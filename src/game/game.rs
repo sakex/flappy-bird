@@ -3,7 +3,7 @@ use crate::game::pipe::Pipe;
 use crate::game::{bird, pipe};
 use crate::utils::request_animation_frame;
 use futures::channel::oneshot;
-use neat_gru::neural_network::nn::NeuralNetwork;
+use neat_gru::neural_network::NeuralNetwork;
 use rand::prelude::ThreadRng;
 use rand::Rng;
 use std::sync::Arc;

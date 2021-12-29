@@ -6,7 +6,7 @@ mod utils;
 
 use crate::training_simulation::TrainingSimulation;
 use crate::utils::set_panic_hook;
-use neat_gru::train::train::Train;
+use neat_gru::train::Train;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
